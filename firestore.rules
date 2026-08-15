@@ -1,0 +1,21 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Reglas básicas para el juego
+    match /rooms/{roomId} {
+      // Cualquiera puede leer los datos de la sala
+      allow read: if true;
+      
+      // Cualquiera puede crear una sala (se convertirá en admin)
+      allow create: if true;
+      
+      // Permitir actualizar la sala (para unirse, girar, o modo trampa)
+      // Idealmente, se debe verificar que el usuario esté en la lista de jugadores 
+      // o sea el admin, pero para mantener la SPA simple y sin autenticación obligatoria
+      // permitimos updates si conocen el ID de la sala.
+      allow update: if true;
+    }
+  }
+}
