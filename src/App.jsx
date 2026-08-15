@@ -25,26 +25,26 @@ const getOrCreatePlayerId = () => {
   return pid;
 };
 
-// Retos picantes dinámicos con {target}
+// Retos picantes argentinos con {target}
 export const DEFAULT_CHALLENGES = [
-  { id: 1, tipo: "reto", texto: "Muerde suavemente el labio inferior de {target}." },
-  { id: 2, tipo: "reto", texto: "Dale un beso caliente y lento en el cuello a {target}." },
-  { id: 3, tipo: "verdad", texto: "¿Qué parte del cuerpo te resulta más tentadora de {target}?" },
-  { id: 4, tipo: "reto", texto: "Hazle un baile sensual o striptease de 20 segundos a {target}." },
-  { id: 5, tipo: "verdad", texto: "Si estuvieras a solas en una habitación cerrada con {target}, ¿qué le harías primero?" },
-  { id: 6, tipo: "reto", texto: "Susúrrale al oído algo muy sucio o atrevido a {target}." },
-  { id: 7, tipo: "reto", texto: "Siéntate en el regazo o piernas de {target} hasta el próximo turno." },
-  { id: 8, tipo: "reto", texto: "Dale un masaje suave en los hombros y cuello a {target} por 30 segundos." },
-  { id: 9, tipo: "reto", texto: "Pásale un hielo (o tus labios húmedos) por el cuello o abdomen a {target}." },
-  { id: 10, tipo: "verdad", texto: "¿Qué puntuación del 1 al 10 le das en la cama o en atracción a {target} y por qué?" },
-  { id: 11, tipo: "reto", texto: "Quítale una prenda con los dientes a {target} o bebe 2 tragos." },
-  { id: 12, tipo: "reto", texto: "Dale una nalgada con la fuerza que elija {target}." },
-  { id: 13, tipo: "verdad", texto: "¿Has tenido alguna vez una fantasía erótica con {target}?" },
-  { id: 14, tipo: "reto", texto: "Besa a {target} en la zona del cuerpo que {target} decida." },
-  { id: 15, tipo: "reto", texto: "Mírale fijamente a los ojos a {target} a 5cm de distancia durante 15s sin reírte o bésale." },
-  { id: 16, tipo: "reto", texto: "Tómate un shot o trago directamente del cuerpo o cuello de {target}." },
-  { id: 17, tipo: "verdad", texto: "Confiesa qué posición o juego te gustaría experimentar con {target}." },
-  { id: 18, tipo: "reto", texto: "Deja que {target} te dé un beso en donde quiera." }
+  { id: 1, tipo: "reto", texto: "Mordele suavemente el labio inferior a {target}." },
+  { id: 2, tipo: "reto", texto: "Dale un beso caliente y despacio en el cuello a {target}." },
+  { id: 3, tipo: "verdad", texto: "¿Qué parte del cuerpo te calienta o te parece más tentadora de {target}?" },
+  { id: 4, tipo: "reto", texto: "Hacele un baile sensual o striptease de 20 segundos a {target}." },
+  { id: 5, tipo: "verdad", texto: "Si estuvieras a solas en una pieza con {target}, ¿qué le harías primero?" },
+  { id: 6, tipo: "reto", texto: "Susurrale al oído algo bien picante o atrevido a {target}." },
+  { id: 7, tipo: "reto", texto: "Sentate a upa / en las piernas de {target} hasta la próxima ronda." },
+  { id: 8, tipo: "reto", texto: "Hacele un masaje suave en los hombros y cuello a {target} por 30 segundos." },
+  { id: 9, tipo: "reto", texto: "Pasale un hielo (o tus labios) por el cuello o abdomen a {target}." },
+  { id: 10, tipo: "verdad", texto: "¿Qué puntaje del 1 al 10 le das a {target} en la cama o en atracción y por qué?" },
+  { id: 11, tipo: "reto", texto: "Sacale una prenda con los dientes a {target} o clavate 2 tragos." },
+  { id: 12, tipo: "reto", texto: "Pegale una nalgada con la fuerza que elija {target}." },
+  { id: 13, tipo: "verdad", texto: "¿Tuviste alguna vez una fantasía o sueño caliente con {target}?" },
+  { id: 14, tipo: "reto", texto: "Dale un beso a {target} en el lugar del cuerpo que elija." },
+  { id: 15, tipo: "reto", texto: "Mirale fijo a los ojos a {target} a 5cm durante 15 segundos sin reírte o dale un chape." },
+  { id: 16, tipo: "reto", texto: "Tomate un shot o trago directamente del cuerpo o cuello de {target}." },
+  { id: 17, tipo: "verdad", texto: "Confesá qué posición o fantasía te gustaría probar con {target}." },
+  { id: 18, tipo: "reto", texto: "Dejá que {target} te dé un beso donde se le cante." }
 ];
 
 export default function App() {
@@ -58,7 +58,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Nombres precargados por el creador
+  // Nombres precargados por el anfitrión
   const [precreatedNames, setPrecreatedNames] = useState([]);
   const [newPreName, setNewPreName] = useState('');
 
@@ -67,7 +67,7 @@ export default function App() {
   const [stepJoin, setStepJoin] = useState('input_code'); // 'input_code' | 'choose_name'
   const [roomDataCache, setRoomDataCache] = useState(null);
 
-  // Detectar si el nombre tiene la palabra secreta "Papito"
+  // Detectar si el nombre tiene la palabra clave "Papito"
   const processName = (input) => {
     const trimmed = input.trim();
     const isSecret = trimmed.toLowerCase().startsWith('papito');
@@ -105,7 +105,7 @@ export default function App() {
   const handleCreateRoom = async (e) => {
     e.preventDefault();
     if (!rawInputName.trim()) {
-      setErrorMsg('Por favor ingresa tu nombre como anfitrión.');
+      setErrorMsg('Por favor poné tu nombre.');
       return;
     }
 
@@ -121,8 +121,6 @@ export default function App() {
       const newRoomCode = generateRoomCode();
       const roomRef = doc(db, 'rooms', newRoomCode);
 
-      // Armar la lista inicial de jugadores:
-      // El creador (ocupado) + slots precreados (disponibles para que otros los reclamen)
       const initialPlayers = [
         {
           id: playerId,
@@ -158,21 +156,21 @@ export default function App() {
       await setDoc(roomRef, initialData);
       setCurrentRoom(newRoomCode);
       setIsHost(true);
-      setCanCheat(isSecret); // ¡Solo si su nombre tiene "Papito"! Ser creador NO activa la trampa
+      setCanCheat(isSecret); // Solo si empieza con "Papito"
     } catch (err) {
       console.error(err);
-      setErrorMsg('Error conectando a Firebase.');
+      setErrorMsg('Error conectando con Firebase.');
     } finally {
       setLoading(false);
     }
   };
 
-  // 2. BUSCAR SALA PARA UNIRSE (Revisar si hay nombres precreados disponibles)
+  // 2. BUSCAR SALA PARA UNIRSE
   const handleCheckRoom = async (e) => {
     e.preventDefault();
     const code = roomCodeInput.trim().toUpperCase();
     if (!code) {
-      setErrorMsg('Ingresa el código de 5 letras de la sala.');
+      setErrorMsg('Ingresá el código de 5 letras de la sala.');
       return;
     }
 
@@ -184,7 +182,7 @@ export default function App() {
       const roomSnap = await getDoc(roomRef);
 
       if (!roomSnap.exists()) {
-        setErrorMsg('La sala no existe o el código es incorrecto.');
+        setErrorMsg('La sala no existe o le pifiaste al código.');
         setLoading(false);
         return;
       }
@@ -192,10 +190,8 @@ export default function App() {
       const data = roomSnap.data();
       setRoomDataCache(data);
 
-      // Revisar si este usuario ya estaba en la sala
       const existingPlayer = data.players?.find(p => p.claimedBy === playerId || p.id === playerId);
       if (existingPlayer) {
-        // Ya está en la sala, entrar directamente
         const { isSecret } = processName(rawInputName || existingPlayer.name);
         setDisplayName(existingPlayer.name);
         setCurrentRoom(code);
@@ -205,24 +201,23 @@ export default function App() {
         return;
       }
 
-      // Obtener slots disponibles
       const unclaimed = data.players?.filter(p => !p.isClaimed) || [];
       setAvailableSlots(unclaimed);
       setStepJoin('choose_name');
     } catch (err) {
       console.error(err);
-      setErrorMsg('Error al consultar la sala.');
+      setErrorMsg('Error al buscar la sala.');
     } finally {
       setLoading(false);
     }
   };
 
-  // 3. RECLAMAR NOMBRE DISPONIBLE O CREAR UNO NUEVO AL UNIRSE
+  // 3. ELEGIR NOMBRE DISPONIBLE O INGRESAR UNO NUEVO
   const handleClaimOrJoin = async (selectedSlotName = null) => {
     const finalName = selectedSlotName || rawInputName.trim();
 
     if (!finalName) {
-      setErrorMsg('Por favor selecciona un nombre o escribe uno.');
+      setErrorMsg('Elegí un nombre o escribí el tuyo.');
       return;
     }
 
@@ -248,7 +243,6 @@ export default function App() {
       const data = roomSnap.data();
       let updatedPlayers = [...(data.players || [])];
 
-      // Si seleccionó un slot precreado disponible
       if (selectedSlotName) {
         const slotIndex = updatedPlayers.findIndex(p => p.name === selectedSlotName && !p.isClaimed);
         if (slotIndex !== -1) {
@@ -260,7 +254,6 @@ export default function App() {
             joinedAt: new Date().toISOString()
           };
         } else {
-          // Si alguien más lo tomó en el último segundo, agregar como nuevo
           updatedPlayers.push({
             id: playerId,
             name: cleanName,
@@ -270,7 +263,6 @@ export default function App() {
           });
         }
       } else {
-        // Escribió su propio nombre
         updatedPlayers.push({
           id: playerId,
           name: cleanName,
@@ -284,10 +276,10 @@ export default function App() {
 
       setCurrentRoom(code);
       setIsHost(data.hostId === playerId);
-      setCanCheat(isSecret); // Trampa solo si usó 'Papito'
+      setCanCheat(isSecret);
     } catch (err) {
       console.error(err);
-      setErrorMsg('Error al unirse a la sala.');
+      setErrorMsg('Error al entrar a la sala.');
     } finally {
       setLoading(false);
     }
@@ -317,7 +309,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Luces decorativas */}
+      {/* Luces de fondo */}
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-rose-600/20 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -345,7 +337,7 @@ export default function App() {
             </div>
           )}
 
-          {/* VISTA 1: CREAR O INICIAR ENTRADA A SALA */}
+          {/* VISTA 1: CREAR O UNIRSE A SALA */}
           {stepJoin === 'input_code' ? (
             <div className="space-y-5">
               {/* Tu Nombre */}
@@ -363,7 +355,7 @@ export default function App() {
                 <input
                   type="text"
                   maxLength={25}
-                  placeholder="Ej: Alex, Sofi..."
+                  placeholder="Ej: Fran, Sofi..."
                   value={rawInputName}
                   onChange={(e) => setRawInputName(e.target.value)}
                   className={`w-full px-4 py-3 bg-slate-900/90 border rounded-xl text-white placeholder-slate-500 focus:outline-none transition text-sm font-medium ${
@@ -374,18 +366,18 @@ export default function App() {
                 />
               </div>
 
-              {/* SECCIÓN OPCIONAL PARA EL CREADOR: PRECARGAR JUGADORES */}
+              {/* SECCIÓN OPCIONAL: PRECARGAR JUGADORES */}
               <div className="pt-2 border-t border-slate-800/60">
                 <label className="block text-xs font-semibold text-slate-400 mb-1.5 flex items-center justify-between">
-                  <span>Precrear Jugadores de la Fiesta (Opcional):</span>
-                  <span className="text-[10px] text-slate-500">{precreatedNames.length} añadidos</span>
+                  <span>Precargar Jugadores de la Previa (Opcional):</span>
+                  <span className="text-[10px] text-slate-500">{precreatedNames.length} sumados</span>
                 </label>
                 
                 <div className="flex gap-2 mb-2">
                   <input
                     type="text"
                     maxLength={15}
-                    placeholder="Nombre del amigo/a..."
+                    placeholder="Nombre de tu amigo/a..."
                     value={newPreName}
                     onChange={(e) => setNewPreName(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddPreName())}
@@ -396,7 +388,7 @@ export default function App() {
                     onClick={handleAddPreName}
                     className="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-semibold flex items-center gap-1"
                   >
-                    <Plus className="w-3.5 h-3.5" /> Añadir
+                    <Plus className="w-3.5 h-3.5" /> Sumar
                   </button>
                 </div>
 
@@ -434,7 +426,7 @@ export default function App() {
               {/* Separador */}
               <div className="relative flex py-1 items-center">
                 <div className="flex-grow border-t border-slate-800"></div>
-                <span className="flex-shrink mx-4 text-xs font-medium text-slate-500 uppercase">o entrar a sala</span>
+                <span className="flex-shrink mx-4 text-xs font-medium text-slate-500 uppercase">o unite a una sala</span>
                 <div className="flex-grow border-t border-slate-800"></div>
               </div>
 
@@ -454,17 +446,17 @@ export default function App() {
                   className="w-1/2 py-3 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold rounded-xl transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 text-sm disabled:opacity-50"
                 >
                   <UserPlus className="w-4 h-4 text-purple-400" />
-                  {loading ? 'Buscando...' : 'Unirse'}
+                  {loading ? 'Buscando...' : 'Unite'}
                 </button>
               </div>
             </div>
           ) : (
-            /* VISTA 2: SELECCIONAR NOMBRE DISPONIBLE O ESCRIBIR */
+            /* VISTA 2: ELEGIR NOMBRE DISPONIBLE O ESCRIBIR */
             <div className="space-y-5 animate-in fade-in duration-200">
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div>
                   <h3 className="text-sm font-bold text-white">Sala {roomCodeInput}</h3>
-                  <p className="text-xs text-slate-400">Selecciona quién eres o escribe tu nombre:</p>
+                  <p className="text-xs text-slate-400">Elegí quién sos o escribí tu nombre:</p>
                 </div>
                 <button
                   onClick={() => setStepJoin('input_code')}
@@ -495,14 +487,14 @@ export default function App() {
                 </div>
               ) : (
                 <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 text-xs text-slate-400 text-center">
-                  No hay nombres precreados disponibles. Escribe tu nombre abajo:
+                  No hay nombres precargados disponibles. Escribí tu nombre abajo:
                 </div>
               )}
 
               {/* Escribir nombre manual */}
               <div className="pt-2 border-t border-slate-800/80">
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  O escribe otro nombre:
+                  O escribí otro nombre:
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -528,7 +520,7 @@ export default function App() {
 
         {/* Footer info */}
         <div className="text-center mt-6 text-xs text-slate-500">
-          <p>Disfrútalo en pantalla completa o instálalo como App (PWA) 📱</p>
+          <p>Jugalo en pantalla completa o instalalo como App (PWA) 📱</p>
         </div>
       </div>
     </div>

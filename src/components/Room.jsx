@@ -56,7 +56,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
 
   const spinInterval = useRef(null);
 
-  // Sincronización en tiempo real
+  // Sincronización en tiempo real con Firestore
   useEffect(() => {
     if (!roomId) return;
     const roomRef = doc(db, 'rooms', roomId);
@@ -92,7 +92,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
     }
   }, [roomData?.isSpinning, roomData?.players]);
 
-  // Sonido de victoria
+  // Sonido de victoria y vibración
   useEffect(() => {
     if (roomData?.currentResult && !roomData?.isSpinning) {
       playWinSound();
@@ -104,14 +104,14 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
   const formatChallenge = (rawText, actorName, targetName) => {
     if (!rawText) return '';
     let formatted = rawText.replace(/\{target\}/gi, targetName || 'alguien');
-    formatted = formatted.replace(/\{actor\}/gi, actorName || 'Tú');
+    formatted = formatted.replace(/\{actor\}/gi, actorName || 'Vos');
     return formatted;
   };
 
   // Girar Ruleta
   const handleSpin = async () => {
     if (!roomData || !roomData.players || roomData.players.length < 2) {
-      alert('¡Se necesitan al menos 2 jugadores en la sala para girar!');
+      alert('¡Hacen falta al menos 2 jugadores en la sala para girar!');
       return;
     }
 
@@ -165,7 +165,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
       nextPair: null
     });
 
-    // 6. Publicar resultado tras 3.2s
+    // 6. Publicar resultado sincronizado tras 3.2s
     setTimeout(async () => {
       await updateDoc(roomRef, {
         isSpinning: false,
@@ -249,9 +249,9 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
         if (Array.isArray(json)) {
           const roomRef = doc(db, 'rooms', roomId);
           await updateDoc(roomRef, { challenges: json });
-          alert(`¡${json.length} retos importados con éxito!`);
+          alert(`¡${json.length} retos importados de una!`);
         } else {
-          alert('El archivo JSON debe contener un arreglo de retos.');
+          alert('El archivo JSON tiene que ser un arreglo de retos.');
         }
       } catch (err) {
         alert('Error al leer el archivo JSON.');
@@ -264,7 +264,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white">
         <Flame className="w-12 h-12 text-rose-500 animate-spin mb-4" />
-        <p className="text-slate-400 font-medium">Sincronizando sala con Firestore...</p>
+        <p className="text-slate-400 font-medium">Sincronizando sala en tiempo real...</p>
       </div>
     );
   }
@@ -300,7 +300,6 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
           </button>
         </div>
 
-        {/* Panel de ajustes solo para el host o el que puede hacer trampa */}
         {isHost || canCheat ? (
           <button
             onClick={() => setShowAdminPanel(!showAdminPanel)}
@@ -371,7 +370,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
               <div className="flex flex-col items-center text-slate-400">
                 <Flame className="w-10 h-10 text-rose-500/60 mb-2" />
                 <span className="text-sm font-semibold">Listo para jugar</span>
-                <span className="text-xs text-slate-500 mt-0.5">Pulsa girar ruleta</span>
+                <span className="text-xs text-slate-500 mt-0.5">Tocá girar ruleta</span>
               </div>
             )}
           </div>
@@ -410,7 +409,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
           className="w-full py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 hover:from-rose-600 hover:to-purple-700 text-white font-black text-lg rounded-2xl shadow-[0_0_30px_rgba(244,63,94,0.4)] transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 uppercase tracking-wider"
         >
           <Zap className="w-5 h-5 fill-white" />
-          {roomData.isSpinning ? 'Eligiendo Víctimas...' : 'Girar Ruleta'}
+          {roomData.isSpinning ? 'Eligiendo víctimas...' : 'Girar Ruleta'}
         </button>
       </main>
 
@@ -456,14 +455,14 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
           <div className="flex items-center gap-2">
             {canCheat && (
               <span className="text-[10px] text-rose-400/90 font-medium">
-                (Toca: 1º Le toca, 2º Con quién)
+                (Tocá: 1º Le toca, 2º Con quién)
               </span>
             )}
             <button
               onClick={() => setNewPlayerModal(true)}
               className="text-[11px] text-purple-300 hover:text-purple-100 flex items-center gap-0.5 font-bold"
             >
-              <Plus className="w-3.5 h-3.5" /> Añadir
+              <Plus className="w-3.5 h-3.5" /> Sumar
             </button>
           </div>
         </div>
@@ -494,7 +493,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
                 <div className="flex items-center gap-2 truncate">
                   <div className={`w-2 h-2 rounded-full ${isMe ? 'bg-emerald-400' : isUnclaimed ? 'bg-amber-500/50' : 'bg-slate-600'}`} />
                   <span className={`truncate ${isMe ? 'text-emerald-300 font-bold' : isUnclaimed ? 'text-slate-400 italic' : 'text-slate-200'}`}>
-                    {player.name} {isMe && '(Tú)'}
+                    {player.name} {isMe && '(Vos)'}
                   </span>
                 </div>
 
@@ -518,7 +517,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
         </div>
       </footer>
 
-      {/* MODAL PARA AÑADIR JUGADOR EXTRA EN VIVO */}
+      {/* MODAL PARA SUMAR JUGADOR EXTRA EN VIVO */}
       <AnimatePresence>
         {newPlayerModal && (
           <motion.div
@@ -535,7 +534,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <UserCheck className="w-5 h-5 text-purple-400" /> Añadir Jugador a la Sala
+                  <UserCheck className="w-5 h-5 text-purple-400" /> Sumar Jugador a la Sala
                 </h3>
                 <button
                   onClick={() => setNewPlayerModal(false)}
@@ -608,7 +607,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
                   Base de Retos ({roomData.challenges?.length || 0})
                 </h4>
                 <p className="text-xs text-slate-400 mb-3">
-                  Usa <code className="text-pink-400">{'{target}'}</code> en tus retos para que se reemplace por la pareja seleccionada.
+                  Usá <code className="text-pink-400">{'{target}'}</code> en tus retos para que se reemplace por la pareja seleccionada.
                 </p>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -637,9 +636,9 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
                     <EyeOff className="w-4 h-4" /> Modo Trampa Activo:
                   </p>
                   <p className="text-slate-300 text-[11px] leading-relaxed">
-                    1. Toca sobre un jugador para fijar <strong>🎯 1º (A quién le toca)</strong>.
+                    1. Tocá a un jugador para fijar <strong>🎯 1º (A quién le toca)</strong>.
                     <br />
-                    2. Toca sobre otro para fijar <strong>💋 2º (Con quién interactúa)</strong>.
+                    2. Tocá a otro para fijar <strong>💋 2º (Con quién interactúa)</strong>.
                   </p>
                 </div>
               )}
