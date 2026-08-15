@@ -1114,66 +1114,6 @@ export default function Room({
         )}
       </AnimatePresence>
 
-      {/* Header SUPERIOR con SALIDA, RONDA, AUDIO, PANTALLA COMPLETA Y MODO RENDIMIENTO */}
-      <header className="w-full max-w-lg flex items-center justify-between z-30 pt-1 pb-1.5 border-b border-slate-800/80 mb-0.5 flex-shrink-0">
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={onLeave}
-            className="p-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-rose-400 transition active:scale-95 shadow-sm"
-            title="Salir de la sala"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-
-          {/* Indicador de Ronda con Doble Toque Secreto para Modo Trampa */}
-          <span 
-            onClick={handleRondaDoubleTap}
-            className="flex items-center gap-1.5 cursor-pointer select-none active:opacity-75 font-bold text-xs text-slate-200 px-2.5 py-1.5 bg-slate-900/90 border border-slate-800 rounded-xl shadow-sm"
-            title={canCheat ? "Doble toque para ocultar/mostrar superpoderes de trampa" : ""}
-          >
-            <TrendingUp className="w-3.5 h-3.5 text-rose-500" />
-            <span>Ronda #{roomData.roundCount || 0}</span>
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1 sm:gap-1.5">
-          {/* Botón Sonido (Activar / Silenciar) */}
-          <button
-            onClick={handleToggleMute}
-            className="p-2 bg-slate-900/90 border border-slate-700/70 hover:border-slate-500 rounded-xl text-slate-300 hover:text-white transition shadow-sm flex items-center justify-center active:scale-95"
-            title={isMuted ? "Sonido silenciado - Tocá para activar" : "Sonido activo - Tocá para silenciar"}
-          >
-            {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-amber-400" />}
-          </button>
-
-          {/* Botón Pantalla Completa */}
-          <button
-            onClick={handleToggleFullscreen}
-            className="p-2 bg-slate-900/90 border border-slate-700/70 hover:border-slate-500 rounded-xl text-slate-300 hover:text-white transition shadow-sm flex items-center justify-center active:scale-95"
-            title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
-          >
-            {isFullscreen ? <Minimize className="w-4 h-4 text-amber-400" /> : <Maximize className="w-4 h-4" />}
-          </button>
-
-          {/* Botón Modo Rendimiento / Animaciones Reducidas */}
-          <button
-            onClick={handleToggleLowSpecs}
-            className={`p-2 rounded-xl text-xs transition shadow-sm flex items-center justify-center border active:scale-95 ${
-              lowSpecsMode
-                ? 'bg-amber-500/20 text-amber-300 border-amber-500/60 shadow-[0_0_10px_rgba(245,158,11,0.4)]'
-                : 'bg-slate-900/90 text-slate-400 hover:text-white border-slate-700/70 hover:border-slate-500'
-            }`}
-            title={
-              lowSpecsMode
-                ? "Modo Rendimiento ACTIVO (Animaciones reducidas)"
-                : "Modo Rendimiento DESACTIVADO (Tocá para acelerar la app)"
-            }
-          >
-            <Zap className={`w-4 h-4 ${lowSpecsMode ? 'fill-amber-400 text-amber-400' : ''}`} />
-          </button>
-        </div>
-      </header>
-
       {/* BARRA DE NIVEL DE PICANTE Y TRAMPA INTEGRADA */}
       <div className="w-full max-w-lg z-10 my-0.5 sm:my-1 flex-shrink-0">
         <div className="p-1.5 sm:p-2 bg-slate-900/95 border border-slate-800 rounded-xl sm:rounded-2xl shadow-lg backdrop-blur-md space-y-1.5">
@@ -2225,7 +2165,17 @@ export default function Room({
                   </div>
                   <div>
                     <h3 className="text-lg font-black text-white">Menú de Juego</h3>
-                    <p className="text-[11px] text-slate-400 font-mono">Sala: <strong className="text-rose-400">{roomId}</strong></p>
+                    <p className="text-[11px] text-slate-400 font-mono flex items-center gap-1.5">
+                      <span>Sala: <strong className="text-rose-400">{roomId}</strong></span>
+                      <span>•</span>
+                      <span 
+                        onClick={handleRondaDoubleTap}
+                        className="cursor-pointer font-bold text-slate-300 hover:text-white select-none active:opacity-70"
+                        title={canCheat ? "Doble toque para alternar superpoderes de trampa" : ""}
+                      >
+                        Ronda #{roomData.roundCount || 0}
+                      </span>
+                    </p>
                   </div>
                 </div>
 
