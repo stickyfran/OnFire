@@ -19,7 +19,10 @@ import {
   Plus, 
   UserCheck,
   TrendingUp,
-  Trash2
+  Trash2,
+  FileText,
+  Search,
+  PenTool
 } from 'lucide-react';
 
 // Generador de audio sintetizado Web Audio API
@@ -59,6 +62,13 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
   // Estado para ocultar/mostrar superpoderes de trampa con doble toque en #Ronda N
   const [cheatUIVisible, setCheatUIVisible] = useState(true);
   const lastTapRef = useRef(0);
+
+  // Modal para fijar Reto o Verdad en la trampa
+  const [showCheatChallengeModal, setShowCheatChallengeModal] = useState(false);
+  const [customChallengeInput, setCustomChallengeInput] = useState('');
+  const [customChallengeType, setCustomChallengeType] = useState('reto');
+  const [challengeSearchTerm, setChallengeSearchTerm] = useState('');
+  const [activeTabModal, setActiveTabModal] = useState('custom'); // 'custom' | 'search'
 
   const spinInterval = useRef(null);
 
@@ -111,7 +121,6 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
     if (!canCheat) return;
     const now = Date.now();
     if (now - lastTapRef.current < 400) {
-      // Doble toque detectado
       setCheatUIVisible(prev => !prev);
       if (navigator.vibrate) navigator.vibrate(40);
       lastTapRef.current = 0;
@@ -185,25 +194,36 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
       target = otherPlayers[randomTargetIdx];
     }
 
-    // 4. Filtrar y Seleccionar Reto según Nivel de Picante Activo
-    const allChallenges = roomData.challenges || [];
-    const filteredChallenges = allChallenges.filter(c => c.level === currentSpice);
-    const pool = filteredChallenges.length > 0 ? filteredChallenges : allChallenges;
-
+    // 4. Determinar Reto (Fijado por Trampa o Aleatorio según Nivel de Picante)
     let challengeObj = null;
-    if (pool.length > 0) {
-      const cIdx = Math.floor(Math.random() * pool.length);
-      const rawC = pool[cIdx];
+
+    if (roomData.nextChallenge) {
+      // RETO TRAMPA FIJADO POR PAPITO
       challengeObj = {
-        ...rawC,
-        texto: formatChallenge(rawC.texto, actor?.name, target?.name)
+        tipo: roomData.nextChallenge.tipo || 'reto',
+        texto: formatChallenge(roomData.nextChallenge.texto, actor?.name, target?.name)
       };
+    } else {
+      // Aleatorio según Nivel de Picante
+      const allChallenges = roomData.challenges || [];
+      const filteredChallenges = allChallenges.filter(c => c.level === currentSpice);
+      const pool = filteredChallenges.length > 0 ? filteredChallenges : allChallenges;
+
+      if (pool.length > 0) {
+        const cIdx = Math.floor(Math.random() * pool.length);
+        const rawC = pool[cIdx];
+        challengeObj = {
+          ...rawC,
+          texto: formatChallenge(rawC.texto, actor?.name, target?.name)
+        };
+      }
     }
 
-    // 5. Limpiar trampa en Firestore
+    // 5. Limpiar toda la trampa en Firestore para la siguiente ronda
     await updateDoc(roomRef, {
       nextTarget: null,
-      nextPair: null
+      nextPair: null,
+      nextChallenge: null
     });
 
     // 6. Publicar resultado sincronizado tras 3.2s
@@ -217,7 +237,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
     }, 3200);
   };
 
-  // MODO TRAMPA: Fijar víctimas (EXCLUSIVO si canCheat = true)
+  // MODO TRAMPA: Fijar víctimas 1 y 2
   const handleToggleCheatPlayer = async (targetPlayer) => {
     if (!canCheat) return;
     const roomRef = doc(db, 'rooms', roomId);
@@ -240,9 +260,17 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
     }
   };
 
+  // MODO TRAMPA: Fijar Reto/Verdad
+  const handleSaveCheatChallenge = async (challengeObj) => {
+    const roomRef = doc(db, 'rooms', roomId);
+    await updateDoc(roomRef, { nextChallenge: challengeObj });
+    setShowCheatChallengeModal(false);
+    if (navigator.vibrate) navigator.vibrate([40, 40]);
+  };
+
   const handleClearTrap = async () => {
     const roomRef = doc(db, 'rooms', roomId);
-    await updateDoc(roomRef, { nextTarget: null, nextPair: null });
+    await updateDoc(roomRef, { nextTarget: null, nextPair: null, nextChallenge: null });
   };
 
   // ELIMINAR JUGADOR (Host o Papito)
@@ -330,6 +358,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
   const currentPlayerInAnimation = playersList[displayIndex] || { name: 'Girando...' };
   const target1Player = playersList.find(p => p.id === roomData.nextTarget);
   const target2Player = playersList.find(p => p.id === roomData.nextPair);
+  const fixedChallenge = roomData.nextChallenge;
 
   // Identificación personalizada de la interacción en pantalla
   const isMeActor = roomData.currentResult && (
@@ -346,6 +375,12 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
 
   // Determinar si los superpoderes de trampa están activos visualmente
   const isCheatActiveVisual = canCheat && cheatUIVisible;
+
+  // Lista filtrada para el buscador de retos del Papito
+  const filteredSearchChallenges = (roomData.challenges || []).filter(c => 
+    c.texto.toLowerCase().includes(challengeSearchTerm.toLowerCase()) ||
+    c.tipo.toLowerCase().includes(challengeSearchTerm.toLowerCase())
+  ).slice(0, 30);
 
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-between p-4 relative pb-12 overflow-x-hidden">
@@ -575,35 +610,64 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
         </button>
       </main>
 
-      {/* BARRA FLOTANTE DE TRAMPA (Visible SOLO si canCheat Y cheatUIVisible) */}
-      {isCheatActiveVisual && (target1Player || target2Player) && (
+      {/* BARRA FLOTANTE DE TRAMPA COMPLETA (Víctima 1 + Víctima 2 + RETO FIJADO) */}
+      {isCheatActiveVisual && (target1Player || target2Player || fixedChallenge) && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-lg mb-3 p-2.5 bg-slate-900/95 border border-rose-500/50 rounded-2xl flex items-center justify-between text-xs z-20 shadow-[0_0_15px_rgba(244,63,94,0.3)] backdrop-blur-md"
+          className="w-full max-w-lg mb-3 p-2.5 bg-slate-900/95 border border-rose-500/50 rounded-2xl flex flex-col gap-2 text-xs z-20 shadow-[0_0_15px_rgba(244,63,94,0.3)] backdrop-blur-md"
         >
-          <div className="flex items-center gap-2 truncate">
-            <span className="font-bold text-rose-400 flex items-center gap-1">
-              <EyeOff className="w-3.5 h-3.5" /> Trampa:
-            </span>
-            {target1Player && (
-              <span className="px-2 py-0.5 bg-rose-500/20 border border-rose-500/40 rounded-lg text-rose-300 truncate">
-                🎯 {target1Player.name}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 truncate">
+              <span className="font-bold text-rose-400 flex items-center gap-1">
+                <EyeOff className="w-3.5 h-3.5" /> Trampa:
               </span>
-            )}
-            {target2Player && (
-              <span className="px-2 py-0.5 bg-purple-500/20 border border-purple-500/40 rounded-lg text-purple-300 truncate">
-                💋 con {target2Player.name}
-              </span>
-            )}
+              {target1Player ? (
+                <span className="px-2 py-0.5 bg-rose-500/20 border border-rose-500/40 rounded-lg text-rose-300 truncate font-semibold">
+                  🎯 {target1Player.name}
+                </span>
+              ) : (
+                <span className="text-[10px] text-slate-500">🎯 (Toca 1º jugador)</span>
+              )}
+              {target2Player ? (
+                <span className="px-2 py-0.5 bg-purple-500/20 border border-purple-500/40 rounded-lg text-purple-300 truncate font-semibold">
+                  💋 con {target2Player.name}
+                </span>
+              ) : (
+                <span className="text-[10px] text-slate-500">💋 (Toca 2º)</span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setShowCheatChallengeModal(true)}
+                className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition ${
+                  fixedChallenge 
+                    ? 'bg-pink-600 text-white shadow-[0_0_8px_rgba(236,72,153,0.5)]' 
+                    : 'bg-slate-800 hover:bg-slate-700 text-pink-300 border border-pink-500/30'
+                }`}
+              >
+                <FileText className="w-3 h-3" />
+                {fixedChallenge ? 'Reto Armado ✓' : '+ Fijar Reto'}
+              </button>
+
+              <button
+                onClick={handleClearTrap}
+                className="p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white"
+                title="Limpiar toda la trampa"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-          <button
-            onClick={handleClearTrap}
-            className="p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white"
-            title="Cancelar trampa"
-          >
-            <X className="w-4 h-4" />
-          </button>
+
+          {/* Si hay reto fijado en la trampa, mostrar preview */}
+          {fixedChallenge && (
+            <div className="px-2 py-1 bg-slate-950/80 rounded-lg border border-pink-500/30 text-[11px] text-slate-300 flex items-center justify-between">
+              <span className="truncate italic">"{fixedChallenge.texto}"</span>
+              <span className="text-[9px] font-bold uppercase text-pink-400 ml-1.5">{fixedChallenge.tipo}</span>
+            </div>
+          )}
         </motion.div>
       )}
 
@@ -616,9 +680,17 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
           </span>
           <div className="flex items-center gap-2">
             {isCheatActiveVisual && (
-              <span className="text-[10px] text-rose-400/90 font-medium">
-                (Tocá: 1º Le toca, 2º Con quién)
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowCheatChallengeModal(true)}
+                  className="text-[10px] text-pink-400 hover:text-pink-300 flex items-center gap-0.5 font-bold bg-pink-500/10 px-2 py-0.5 rounded-lg border border-pink-500/30"
+                >
+                  <FileText className="w-3 h-3" /> Reto Trampa
+                </button>
+                <span className="text-[10px] text-rose-400/90 font-medium">
+                  (1º Le toca, 2º Con quién)
+                </span>
+              </div>
             )}
             <button
               onClick={() => setNewPlayerModal(true)}
@@ -696,6 +768,163 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
           })}
         </div>
       </footer>
+
+      {/* MODAL PARA FIJAR RETO O VERDAD TRAMPA (Exclusivo Papito) */}
+      <AnimatePresence>
+        {showCheatChallengeModal && isCheatActiveVisual && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              className="bg-slate-900 border border-slate-800 p-5 rounded-3xl w-full max-w-md shadow-2xl space-y-4 max-h-[85vh] flex flex-col"
+            >
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 className="text-base font-bold text-pink-400 flex items-center gap-2">
+                  <FileText className="w-5 h-5" /> Fijar Reto o Verdad en las Sombras
+                </h3>
+                <button
+                  onClick={() => setShowCheatChallengeModal(false)}
+                  className="text-slate-400 hover:text-white text-sm"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Tabs: Escribir Propio vs Buscar de la Base de 500 */}
+              <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+                <button
+                  onClick={() => setActiveTabModal('custom')}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition ${
+                    activeTabModal === 'custom'
+                      ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <PenTool className="w-3.5 h-3.5" /> Escribir Personalizado
+                </button>
+                <button
+                  onClick={() => setActiveTabModal('search')}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition ${
+                    activeTabModal === 'search'
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Search className="w-3.5 h-3.5" /> Elegir de los 500
+                </button>
+              </div>
+
+              {activeTabModal === 'custom' ? (
+                /* TAB 1: ESCRIBIR RETO PROPIO */
+                <div className="space-y-3 flex-1 overflow-y-auto">
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCustomChallengeType('reto')}
+                      className={`flex-1 py-1.5 rounded-xl text-xs font-bold border transition ${
+                        customChallengeType === 'reto'
+                          ? 'bg-rose-500/20 text-rose-300 border-rose-500'
+                          : 'bg-slate-950 border-slate-800 text-slate-400'
+                      }`}
+                    >
+                      🔥 RETO
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCustomChallengeType('verdad')}
+                      className={`flex-1 py-1.5 rounded-xl text-xs font-bold border transition ${
+                        customChallengeType === 'verdad'
+                          ? 'bg-purple-500/20 text-purple-300 border-purple-500'
+                          : 'bg-slate-950 border-slate-800 text-slate-400'
+                      }`}
+                    >
+                      💜 VERDAD
+                    </button>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Texto del Reto / Verdad:
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={customChallengeInput}
+                      onChange={(e) => setCustomChallengeInput(e.target.value)}
+                      placeholder="Ej: Dale un beso apasionado de 15 segundos en la boca a {target}..."
+                      className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-pink-500 resize-none font-medium"
+                    />
+                    <div className="flex justify-between items-center mt-1">
+                      <button
+                        type="button"
+                        onClick={() => setCustomChallengeInput(prev => prev + ' {target}')}
+                        className="text-[10px] text-pink-400 hover:text-pink-300 bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/30"
+                      >
+                        + Insertar {'{target}'} (Nombre Pareja)
+                      </button>
+                      <span className="text-[10px] text-slate-500">{customChallengeInput.length} chars</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!customChallengeInput.trim()) return;
+                      handleSaveCheatChallenge({
+                        tipo: customChallengeType,
+                        texto: customChallengeInput.trim()
+                      });
+                    }}
+                    disabled={!customChallengeInput.trim()}
+                    className="w-full py-3 bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 disabled:opacity-50 text-white font-bold rounded-xl text-xs shadow-lg flex items-center justify-center gap-1.5 transition active:scale-95"
+                  >
+                    <Check className="w-4 h-4" /> Armar este Reto para la Ruleta
+                  </button>
+                </div>
+              ) : (
+                /* TAB 2: BUSCADOR DE LOS 500 RETOS */
+                <div className="space-y-3 flex-1 flex flex-col overflow-hidden">
+                  <div className="relative">
+                    <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      placeholder="Buscar por palabra (ej: beso, trago, labio, hotel)..."
+                      value={challengeSearchTerm}
+                      onChange={(e) => setChallengeSearchTerm(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pink-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 overflow-y-auto max-h-56 pr-1 flex-1">
+                    {filteredSearchChallenges.map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => handleSaveCheatChallenge(c)}
+                        className="w-full p-2.5 bg-slate-950 hover:bg-slate-800/80 border border-slate-800 hover:border-pink-500/50 rounded-xl text-left text-xs transition flex items-center justify-between group"
+                      >
+                        <div className="truncate pr-2">
+                          <span className={`text-[9px] font-bold uppercase mr-1.5 px-1.5 py-0.5 rounded ${
+                            c.tipo === 'reto' ? 'bg-rose-500/20 text-rose-400' : 'bg-purple-500/20 text-purple-400'
+                          }`}>
+                            {c.tipo}
+                          </span>
+                          <span className="text-slate-200">{c.texto}</span>
+                        </div>
+                        <Check className="w-3.5 h-3.5 text-pink-400 opacity-0 group-hover:opacity-100 flex-shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* MODAL PARA SUMAR JUGADOR EXTRA EN VIVO */}
       <AnimatePresence>
@@ -840,6 +1069,8 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
                     1. Tocá a un jugador para fijar <strong>🎯 1º (A quién le toca)</strong>.
                     <br />
                     2. Tocá a otro para fijar <strong>💋 2º (Con quién interactúa)</strong>.
+                    <br />
+                    3. Tocá <strong>+ Reto</strong> para elegir o redactar el reto exacto que saldrá.
                   </p>
                 </div>
               )}
