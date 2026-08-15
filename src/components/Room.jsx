@@ -1353,13 +1353,30 @@ export default function Room({
             }`}
           />
 
-          {/* Círculo central de la ruleta */}
-          <div className={`w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full border flex flex-col items-center justify-center p-2 text-center relative overflow-hidden z-10 transition-all ${
-            currentSpice >= 3
-              ? 'bg-gradient-to-b from-red-950 via-slate-950 to-red-950 border-amber-500/80 shadow-[inset_0_0_30px_rgba(239,68,68,0.8)]'
-              : 'bg-gradient-to-b from-slate-900 to-slate-950 border-slate-700/80 shadow-inner'
-          }`}>
-            
+          {/* Círculo central interactivo de la ruleta (TOCÁ PARA GIRAR) */}
+          <button
+            type="button"
+            onClick={handleSpin}
+            disabled={roomData.isSpinning || playersList.length < 2}
+            className={`w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full border flex flex-col items-center justify-center p-2 text-center relative overflow-hidden z-10 transition-all select-none ${
+              roomData.isSpinning 
+                ? 'cursor-wait scale-95 opacity-95' 
+                : playersList.length < 2 
+                ? 'cursor-not-allowed opacity-60' 
+                : 'cursor-pointer active:scale-90 hover:scale-105 shadow-2xl'
+            } ${
+              currentSpice >= 3
+                ? 'bg-gradient-to-b from-red-950 via-slate-950 to-red-950 border-amber-500/80 shadow-[inset_0_0_30px_rgba(239,68,68,0.8)]'
+                : 'bg-gradient-to-b from-slate-900 to-slate-950 border-slate-700/80 shadow-inner'
+            }`}
+            title={
+              roomData.isSpinning
+                ? 'Girando ruleta...'
+                : playersList.length < 2
+                ? 'Se necesitan al menos 2 jugadores para girar'
+                : '¡Tocá el centro para girar la ruleta!'
+            }
+          >
             {/* Núcleo de lava ardiente para nivel 3 y 4 */}
             {currentSpice >= 3 && (
               <div className="absolute inset-0 bg-radial-gradient from-orange-600/30 via-red-600/20 to-transparent pointer-events-none animate-pulse" />
@@ -1437,15 +1454,22 @@ export default function Room({
                     )}
                   </div>
                 )}
+                <span className="text-[8px] text-rose-400/90 font-bold uppercase tracking-wider mt-0.5 animate-pulse">
+                  🎲 Tocá para girar
+                </span>
               </motion.div>
             ) : (
-              <div className="flex flex-col items-center text-slate-400">
-                <Flame className="w-7 h-7 sm:w-8 sm:h-8 text-rose-500/80 mb-0.5 animate-pulse" />
-                <span className="text-xs sm:text-sm font-bold text-slate-200">Ruleta</span>
-                <span className="text-[9px] sm:text-[10px] text-slate-500">Tocá girar</span>
+              <div className="flex flex-col items-center text-slate-300">
+                <Flame className="w-8 h-8 sm:w-9 sm:h-9 text-rose-500 mb-0.5 animate-pulse" />
+                <span className="text-xs sm:text-sm font-black text-white uppercase tracking-wider">
+                  TOCÁ PARA
+                </span>
+                <span className="text-sm sm:text-base font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-rose-400 to-pink-500 animate-bounce mt-0.5">
+                  🔥 GIRAR 🔥
+                </span>
               </div>
             )}
-          </div>
+          </button>
 
           {/* JUGADORES DISTRIBUIDOS EN ÓRBITA ALREDEDOR DE LA RULETA */}
           {playersList.map((player, idx) => {
@@ -1516,131 +1540,124 @@ export default function Room({
           })}
         </div>
 
-        {/* Tarjeta del Reto / Verdad con Diseño Cautivante y Grande */}
-        <AnimatePresence>
-          {currentChallenge && !roomData.isSpinning && (
+        {/* ÁREA INFERIOR: BARRA DE TRAMPA + TARJETA DE RETO / VERDAD AL FONDO */}
+        <div className="w-full flex-shrink-0 flex flex-col items-center">
+          {/* BARRA FLOTANTE DE TRAMPA COMPLETA */}
+          {isCheatActiveVisual && (target1Player || target2Player || fixedChallenge || roomData.nextType) && (
             <motion.div
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              className={`w-full glass-card p-3 sm:p-4 rounded-2xl my-1 text-center border-2 shadow-2xl flex-shrink-0 max-h-36 sm:max-h-40 overflow-y-auto ${
-                currentChallenge.tipo === 'reto'
-                  ? 'border-rose-500/60 shadow-[0_0_30px_rgba(244,63,94,0.35)] bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-rose-950/60'
-                  : 'border-fuchsia-500/60 shadow-[0_0_30px_rgba(217,70,239,0.35)] bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-purple-950/60'
-              }`}
+              className="w-full max-w-lg mb-1 p-2 bg-slate-900/95 border border-rose-500/50 rounded-xl flex flex-col gap-1.5 text-xs z-20 shadow-[0_0_15px_rgba(244,63,94,0.3)] backdrop-blur-md flex-shrink-0"
             >
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <span className="px-3 py-0.5 rounded-full text-xs font-black bg-slate-800 border border-slate-700 text-slate-200 uppercase">
-                  {currentSpice === 1 ? '🌶️ Suave' : currentSpice === 2 ? '🔥 Caliente' : currentSpice === 3 ? '💀 Fuego' : '💀🔥 Extremo'}
-                </span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 truncate">
+                  <span className="font-bold text-rose-400 flex items-center gap-1">
+                    <EyeOff className="w-3 h-3" /> Trampa:
+                  </span>
+                  {target1Player ? (
+                    <span className="px-1.5 py-0.2 bg-rose-500/20 border border-rose-500/40 rounded text-rose-300 truncate font-semibold text-[10px]">
+                      🎯 {target1Player.name}
+                    </span>
+                  ) : (
+                    <span className="text-[9px] text-slate-500">🎯 (1º)</span>
+                  )}
+                  {target2Player ? (
+                    <span className="px-1.5 py-0.2 bg-purple-500/20 border border-purple-500/40 rounded text-purple-300 truncate font-semibold text-[10px]">
+                      💋 {target2Player.name}
+                    </span>
+                  ) : (
+                    <span className="text-[9px] text-slate-500">💋 (2º)</span>
+                  )}
+                  {roomData.nextType && (
+                    <span className="px-1.5 py-0.2 bg-pink-500/20 border border-pink-500/40 rounded text-pink-300 truncate font-semibold text-[10px]">
+                      {roomData.nextType === 'reto' ? '🔥 Reto' : '💜 Verdad'}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setShowCheatChallengeModal(true)}
+                    className={`px-1.5 py-0.5 rounded text-[9px] font-bold flex items-center gap-0.5 transition ${
+                      fixedChallenge 
+                        ? 'bg-pink-600 text-white shadow-[0_0_8px_rgba(236,72,153,0.5)]' 
+                        : 'bg-slate-800 hover:bg-slate-700 text-pink-300 border border-pink-500/30'
+                    }`}
+                  >
+                    <FileText className="w-2.5 h-2.5" />
+                    {fixedChallenge ? 'Reto Armado ✓' : '+ Fijar Reto'}
+                  </button>
+
+                  <button
+                    onClick={handleClearTrap}
+                    className="p-0.5 hover:bg-slate-800 rounded text-slate-400 hover:text-white"
+                    title="Limpiar toda la trampa"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
 
-              <p className="text-lg sm:text-2xl md:text-3xl font-extrabold text-white font-fun tracking-wide leading-tight sm:leading-snug drop-shadow-md px-1 my-1">
-                "{currentChallenge.texto}"
-              </p>
-
-              {/* COUNTDOWN DE 10 SEGUNDOS CON BARRA ARDIENTE */}
-              <div className="mt-2 pt-1.5 border-t border-slate-800/80 flex items-center justify-center gap-2">
-                {countdown > 0 ? (
-                  <span className="px-3 py-0.5 bg-gradient-to-r from-amber-500/25 via-rose-500/25 to-purple-500/25 border border-amber-500/50 rounded-full text-xs font-black text-amber-300 flex items-center gap-1 shadow-[0_0_12px_rgba(245,158,11,0.5)] animate-pulse">
-                    <Clock className="w-3.5 h-3.5 text-amber-300 animate-spin" />
-                    ⏱️ TIEMPO: {countdown}s
-                  </span>
-                ) : (
-                  <span className="px-3 py-0.5 bg-slate-800/90 border border-slate-700 text-slate-400 rounded-full text-xs font-bold flex items-center gap-1">
-                    ⏰ ¡TIEMPO CUMPLIDO!
-                  </span>
-                )}
-
-                {countdown > 0 && (
-                  <div className="w-28 sm:w-40 h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700/60">
-                    <motion.div
-                      animate={{ width: `${Math.max(0, (countdown / 10) * 100)}%` }}
-                      transition={{ duration: 0.9, ease: "linear" }}
-                      className="h-full bg-gradient-to-r from-amber-400 via-rose-500 to-purple-600 rounded-full"
-                    />
-                  </div>
-                )}
-              </div>
+              {/* Preview del reto armado */}
+              {fixedChallenge && (
+                <div className="px-1.5 py-0.5 bg-slate-950/80 rounded border border-pink-500/30 text-[10px] text-slate-300 flex items-center justify-between">
+                  <span className="truncate italic">"{fixedChallenge.texto}"</span>
+                  <span className="text-[9px] font-bold uppercase text-pink-400 ml-1">{fixedChallenge.tipo}</span>
+                </div>
+              )}
             </motion.div>
           )}
-        </AnimatePresence>
 
-        {/* BARRA FLOTANTE DE TRAMPA COMPLETA */}
-        {isCheatActiveVisual && (target1Player || target2Player || fixedChallenge || roomData.nextType) && (
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-lg mb-1 p-2 bg-slate-900/95 border border-rose-500/50 rounded-xl flex flex-col gap-1.5 text-xs z-20 shadow-[0_0_15px_rgba(244,63,94,0.3)] backdrop-blur-md flex-shrink-0"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 truncate">
-                <span className="font-bold text-rose-400 flex items-center gap-1">
-                  <EyeOff className="w-3 h-3" /> Trampa:
-                </span>
-                {target1Player ? (
-                  <span className="px-1.5 py-0.2 bg-rose-500/20 border border-rose-500/40 rounded text-rose-300 truncate font-semibold text-[10px]">
-                    🎯 {target1Player.name}
+          {/* Tarjeta del Reto / Verdad con Diseño Cautivante y Grande en la parte inferior */}
+          <AnimatePresence>
+            {currentChallenge && !roomData.isSpinning && (
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className={`w-full glass-card p-3 sm:p-4 rounded-2xl mb-1 text-center border-2 shadow-2xl flex-shrink-0 max-h-36 sm:max-h-44 overflow-y-auto ${
+                  currentChallenge.tipo === 'reto'
+                    ? 'border-rose-500/60 shadow-[0_0_30px_rgba(244,63,94,0.35)] bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-rose-950/60'
+                    : 'border-fuchsia-500/60 shadow-[0_0_30px_rgba(217,70,239,0.35)] bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-purple-950/60'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <span className="px-3 py-0.5 rounded-full text-xs font-black bg-slate-800 border border-slate-700 text-slate-200 uppercase">
+                    {currentSpice === 1 ? '🌶️ Suave' : currentSpice === 2 ? '🔥 Caliente' : currentSpice === 3 ? '💀 Fuego' : '💀🔥 Extremo'}
                   </span>
-                ) : (
-                  <span className="text-[9px] text-slate-500">🎯 (1º)</span>
-                )}
-                {target2Player ? (
-                  <span className="px-1.5 py-0.2 bg-purple-500/20 border border-purple-500/40 rounded text-purple-300 truncate font-semibold text-[10px]">
-                    💋 {target2Player.name}
-                  </span>
-                ) : (
-                  <span className="text-[9px] text-slate-500">💋 (2º)</span>
-                )}
-                {roomData.nextType && (
-                  <span className="px-1.5 py-0.2 bg-pink-500/20 border border-pink-500/40 rounded text-pink-300 truncate font-semibold text-[10px]">
-                    {roomData.nextType === 'reto' ? '🔥 Reto' : '💜 Verdad'}
-                  </span>
-                )}
-              </div>
+                </div>
 
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setShowCheatChallengeModal(true)}
-                  className={`px-1.5 py-0.5 rounded text-[9px] font-bold flex items-center gap-0.5 transition ${
-                    fixedChallenge 
-                      ? 'bg-pink-600 text-white shadow-[0_0_8px_rgba(236,72,153,0.5)]' 
-                      : 'bg-slate-800 hover:bg-slate-700 text-pink-300 border border-pink-500/30'
-                  }`}
-                >
-                  <FileText className="w-2.5 h-2.5" />
-                  {fixedChallenge ? 'Reto Armado ✓' : '+ Fijar Reto'}
-                </button>
+                <p className="text-base sm:text-xl md:text-2xl font-extrabold text-white font-fun tracking-wide leading-tight sm:leading-snug drop-shadow-md px-1 my-1">
+                  "{currentChallenge.texto}"
+                </p>
 
-                <button
-                  onClick={handleClearTrap}
-                  className="p-0.5 hover:bg-slate-800 rounded text-slate-400 hover:text-white"
-                  title="Limpiar toda la trampa"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            </div>
+                {/* COUNTDOWN DE 10 SEGUNDOS CON BARRA ARDIENTE */}
+                <div className="mt-2 pt-1.5 border-t border-slate-800/80 flex items-center justify-center gap-2">
+                  {countdown > 0 ? (
+                    <span className="px-3 py-0.5 bg-gradient-to-r from-amber-500/25 via-rose-500/25 to-purple-500/25 border border-amber-500/50 rounded-full text-xs font-black text-amber-300 flex items-center gap-1 shadow-[0_0_12px_rgba(245,158,11,0.5)] animate-pulse">
+                      <Clock className="w-3.5 h-3.5 text-amber-300 animate-spin" />
+                      ⏱️ TIEMPO: {countdown}s
+                    </span>
+                  ) : (
+                    <span className="px-3 py-0.5 bg-slate-800/90 border border-slate-700 text-slate-400 rounded-full text-xs font-bold flex items-center gap-1">
+                      ⏰ ¡TIEMPO CUMPLIDO!
+                    </span>
+                  )}
 
-            {/* Preview del reto armado */}
-            {fixedChallenge && (
-              <div className="px-1.5 py-0.5 bg-slate-950/80 rounded border border-pink-500/30 text-[10px] text-slate-300 flex items-center justify-between">
-                <span className="truncate italic">"{fixedChallenge.texto}"</span>
-                <span className="text-[9px] font-bold uppercase text-pink-400 ml-1">{fixedChallenge.tipo}</span>
-              </div>
+                  {countdown > 0 && (
+                    <div className="w-28 sm:w-40 h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700/60">
+                      <motion.div
+                        animate={{ width: `${Math.max(0, (countdown / 10) * 100)}%` }}
+                        transition={{ duration: 0.9, ease: "linear" }}
+                        className="h-full bg-gradient-to-r from-amber-400 via-rose-500 to-purple-600 rounded-full"
+                      />
+                    </div>
+                  )}
+                </div>
+              </motion.div>
             )}
-          </motion.div>
-        )}
-
-        {/* Botón de Giro GRANDE Y PROMINENTE */}
-        <button
-          onClick={handleSpin}
-          disabled={roomData.isSpinning || playersList.length < 2}
-          className="w-full py-3.5 sm:py-4 px-6 bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 hover:from-rose-600 hover:to-purple-700 text-white font-black text-base sm:text-lg md:text-xl rounded-2xl shadow-[0_0_25px_rgba(244,63,94,0.5)] transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 uppercase tracking-wider flex-shrink-0"
-        >
-          <Zap className="w-5 h-5 sm:w-6 sm:h-6 fill-white" />
-          {roomData.isSpinning ? 'Eligiendo víctimas...' : 'Girar Ruleta'}
-        </button>
+          </AnimatePresence>
+        </div>
       </main>
 
       {/* ========================================================== */}
