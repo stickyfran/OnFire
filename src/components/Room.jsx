@@ -1074,7 +1074,7 @@ export default function Room({
               times: [0, 0.18, 0.78, 1],
               ease: ["easeOut", "easeInOut", "easeIn"]
             }}
-            className="pointer-events-none fixed inset-x-0 top-1/2 -translate-y-1/2 z-45 flex items-center justify-center select-none"
+            className="pointer-events-none fixed inset-x-0 top-1/2 -translate-y-1/2 z-[70] flex items-center justify-center select-none"
           >
             <div className="w-full relative py-4 sm:py-6 bg-gradient-to-r from-transparent via-slate-950/95 to-transparent border-y-4 border-amber-400 shadow-[0_0_50px_rgba(245,158,11,0.9)] backdrop-blur-md flex items-center justify-center overflow-hidden">
               {/* Rayas de velocidad arcade */}
