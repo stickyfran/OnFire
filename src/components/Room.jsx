@@ -337,40 +337,43 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
         )}
       </header>
 
-      {/* BARRA DE NIVEL DE PICANTE (Visible para todos e interactiva) */}
+      {/* BARRA DE NIVEL DE PICANTE */}
       <div className="w-full max-w-lg z-10 my-3">
         <div className="p-2 bg-slate-900/90 border border-slate-800 rounded-2xl flex items-center justify-between shadow-lg backdrop-blur-md">
           <button
-            onClick={() => handleChangeSpiceLevel(1)}
+            onClick={() => (isHost || canCheat) && handleChangeSpiceLevel(1)}
+            disabled={!isHost && !canCheat}
             className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
               currentSpice === 1
                 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
                 : 'text-slate-500 hover:text-slate-300'
-            }`}
+            } ${!isHost && !canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
           >
             <span>🌶️</span>
             <span className="truncate">1. Suave</span>
           </button>
 
           <button
-            onClick={() => handleChangeSpiceLevel(2)}
+            onClick={() => (isHost || canCheat) && handleChangeSpiceLevel(2)}
+            disabled={!isHost && !canCheat}
             className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
               currentSpice === 2
                 ? 'bg-rose-500/20 text-rose-300 border border-rose-500/50 shadow-[0_0_12px_rgba(244,63,94,0.4)]'
                 : 'text-slate-500 hover:text-slate-300'
-            }`}
+            } ${!isHost && !canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
           >
             <span>🔥</span>
             <span className="truncate">2. Caliente</span>
           </button>
 
           <button
-            onClick={() => handleChangeSpiceLevel(3)}
+            onClick={() => (isHost || canCheat) && handleChangeSpiceLevel(3)}
+            disabled={!isHost && !canCheat}
             className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
               currentSpice === 3
                 ? 'bg-purple-600/30 text-purple-300 border border-purple-500/60 shadow-[0_0_15px_rgba(168,85,247,0.5)]'
                 : 'text-slate-500 hover:text-slate-300'
-            }`}
+            } ${!isHost && !canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
           >
             <span>💀</span>
             <span className="truncate">3. Fuego</span>
@@ -382,7 +385,9 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
           <span className="flex items-center gap-1">
             <TrendingUp className="w-3 h-3 text-rose-500" /> Ronda #{roomData.roundCount || 0}
           </span>
-          <span>El picante sube automáticamente cada 8 rondas</span>
+          <span>
+            {isHost || canCheat ? 'Podés cambiar el nivel cuando quieras' : 'El picante sube automáticamente cada 8 rondas'}
+          </span>
         </div>
       </div>
 
