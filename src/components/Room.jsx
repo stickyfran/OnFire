@@ -17,7 +17,9 @@ import {
   X, 
   EyeOff, 
   Plus, 
-  UserCheck 
+  UserCheck,
+  TrendingUp,
+  Skull
 } from 'lucide-react';
 
 // Generador de audio sintetizado Web Audio API
@@ -108,6 +110,12 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
     return formatted;
   };
 
+  // Cambiar Nivel de Picante (Sincronizado para todos)
+  const handleChangeSpiceLevel = async (newLevel) => {
+    const roomRef = doc(db, 'rooms', roomId);
+    await updateDoc(roomRef, { spiceLevel: newLevel });
+  };
+
   // Girar Ruleta
   const handleSpin = async () => {
     if (!roomData || !roomData.players || roomData.players.length < 2) {
@@ -116,13 +124,24 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
     }
 
     const roomRef = doc(db, 'rooms', roomId);
+    const newRoundCount = (roomData.roundCount || 0) + 1;
+
+    // Aumento automático de nivel de picante cada 8 rondas (si no se cambió manualmente al máximo)
+    let currentSpice = roomData.spiceLevel || 1;
+    if (newRoundCount >= 16 && currentSpice < 3) {
+      currentSpice = 3;
+    } else if (newRoundCount >= 8 && currentSpice < 2) {
+      currentSpice = 2;
+    }
 
     // 1. Iniciar giro en Firestore
     await updateDoc(roomRef, {
       isSpinning: true,
       currentResult: null,
       currentPair: null,
-      currentChallenge: null
+      currentChallenge: null,
+      roundCount: newRoundCount,
+      spiceLevel: currentSpice
     });
 
     // 2. Determinar Víctima 1 (Actor)
@@ -148,11 +167,15 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
       target = otherPlayers[randomTargetIdx];
     }
 
-    // 4. Seleccionar y formatear reto
+    // 4. Filtrar y Seleccionar Reto según Nivel de Picante Activo
+    const allChallenges = roomData.challenges || [];
+    const filteredChallenges = allChallenges.filter(c => c.level === currentSpice);
+    const pool = filteredChallenges.length > 0 ? filteredChallenges : allChallenges;
+
     let challengeObj = null;
-    if (roomData.challenges && roomData.challenges.length > 0) {
-      const cIdx = Math.floor(Math.random() * roomData.challenges.length);
-      const rawC = roomData.challenges[cIdx];
+    if (pool.length > 0) {
+      const cIdx = Math.floor(Math.random() * pool.length);
+      const rawC = pool[cIdx];
       challengeObj = {
         ...rawC,
         texto: formatChallenge(rawC.texto, actor?.name, target?.name)
@@ -269,6 +292,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
     );
   }
 
+  const currentSpice = roomData.spiceLevel || 1;
   const playersList = roomData.players || [];
   const currentPlayerInAnimation = playersList[displayIndex] || { name: 'Girando...' };
   const target1Player = playersList.find(p => p.id === roomData.nextTarget);
@@ -281,7 +305,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
       <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-fuchsia-600/15 rounded-full blur-3xl pointer-events-none" />
 
       {/* Header */}
-      <header className="w-full max-w-lg flex items-center justify-between pt-2 pb-4 z-10 border-b border-slate-800/80">
+      <header className="w-full max-w-lg flex items-center justify-between pt-2 pb-3 z-10 border-b border-slate-800/80">
         <button
           onClick={onLeave}
           className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-rose-400 transition"
@@ -313,15 +337,64 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
         )}
       </header>
 
+      {/* BARRA DE NIVEL DE PICANTE (Visible para todos e interactiva) */}
+      <div className="w-full max-w-lg z-10 my-3">
+        <div className="p-2 bg-slate-900/90 border border-slate-800 rounded-2xl flex items-center justify-between shadow-lg backdrop-blur-md">
+          <button
+            onClick={() => handleChangeSpiceLevel(1)}
+            className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+              currentSpice === 1
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
+                : 'text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            <span>🌶️</span>
+            <span className="truncate">1. Suave</span>
+          </button>
+
+          <button
+            onClick={() => handleChangeSpiceLevel(2)}
+            className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+              currentSpice === 2
+                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/50 shadow-[0_0_12px_rgba(244,63,94,0.4)]'
+                : 'text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            <span>🔥</span>
+            <span className="truncate">2. Caliente</span>
+          </button>
+
+          <button
+            onClick={() => handleChangeSpiceLevel(3)}
+            className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+              currentSpice === 3
+                ? 'bg-purple-600/30 text-purple-300 border border-purple-500/60 shadow-[0_0_15px_rgba(168,85,247,0.5)]'
+                : 'text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            <span>💀</span>
+            <span className="truncate">3. Fuego</span>
+          </button>
+        </div>
+
+        {/* Indicador de Ronda y Progreso */}
+        <div className="flex justify-between items-center px-2 mt-1.5 text-[10px] text-slate-500 font-medium">
+          <span className="flex items-center gap-1">
+            <TrendingUp className="w-3 h-3 text-rose-500" /> Ronda #{roomData.roundCount || 0}
+          </span>
+          <span>El picante sube automáticamente cada 8 rondas</span>
+        </div>
+      </div>
+
       {/* RULETA CENTRAL */}
-      <main className="w-full max-w-lg flex flex-col items-center justify-center my-auto z-10 py-4">
-        <div className="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center mb-5">
+      <main className="w-full max-w-lg flex flex-col items-center justify-center my-auto z-10 py-2">
+        <div className="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center mb-4">
           <motion.div
             animate={{
               rotate: roomData.isSpinning ? 720 : 0,
               borderColor: roomData.isSpinning 
                 ? ['#f43f5e', '#d946ef', '#a855f7', '#f43f5e'] 
-                : '#334155'
+                : currentSpice === 3 ? '#ec4899' : currentSpice === 2 ? '#f43f5e' : '#f59e0b'
             }}
             transition={{
               rotate: { repeat: roomData.isSpinning ? Infinity : 0, duration: 1.1, ease: "linear" },
@@ -383,7 +456,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="w-full glass-card p-4 sm:p-5 rounded-2xl mb-5 text-center border-rose-500/30 shadow-[0_0_25px_rgba(244,63,94,0.2)]"
+              className="w-full glass-card p-4 sm:p-5 rounded-2xl mb-4 text-center border-rose-500/30 shadow-[0_0_25px_rgba(244,63,94,0.2)]"
             >
               <div className="flex items-center justify-center gap-2 mb-2">
                 <span className={`px-3 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider ${
@@ -392,6 +465,10 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
                     : 'bg-purple-500/20 text-purple-400 border border-purple-500/40'
                 }`}>
                   {roomData.currentChallenge.tipo}
+                </span>
+
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 border border-slate-700 text-slate-300">
+                  {currentSpice === 1 ? '🌶️ Suave' : currentSpice === 2 ? '🔥 Caliente' : '💀 Fuego Total'}
                 </span>
               </div>
 

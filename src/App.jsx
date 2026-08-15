@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from './firebase';
 import Room from './components/Room';
+import { ALL_CHALLENGES } from './data/challenges';
 import { 
   Flame, 
   Sparkles, 
   UserPlus, 
   ShieldAlert, 
   Lock, 
-  Users, 
   Plus, 
   X, 
   ArrowRight,
@@ -24,28 +24,6 @@ const getOrCreatePlayerId = () => {
   }
   return pid;
 };
-
-// Retos picantes argentinos con {target}
-export const DEFAULT_CHALLENGES = [
-  { id: 1, tipo: "reto", texto: "Mordele suavemente el labio inferior a {target}." },
-  { id: 2, tipo: "reto", texto: "Dale un beso caliente y despacio en el cuello a {target}." },
-  { id: 3, tipo: "verdad", texto: "¿Qué parte del cuerpo te calienta o te parece más tentadora de {target}?" },
-  { id: 4, tipo: "reto", texto: "Hacele un baile sensual o striptease de 20 segundos a {target}." },
-  { id: 5, tipo: "verdad", texto: "Si estuvieras a solas en una pieza con {target}, ¿qué le harías primero?" },
-  { id: 6, tipo: "reto", texto: "Susurrale al oído algo bien picante o atrevido a {target}." },
-  { id: 7, tipo: "reto", texto: "Sentate a upa / en las piernas de {target} hasta la próxima ronda." },
-  { id: 8, tipo: "reto", texto: "Hacele un masaje suave en los hombros y cuello a {target} por 30 segundos." },
-  { id: 9, tipo: "reto", texto: "Pasale un hielo (o tus labios) por el cuello o abdomen a {target}." },
-  { id: 10, tipo: "verdad", texto: "¿Qué puntaje del 1 al 10 le das a {target} en la cama o en atracción y por qué?" },
-  { id: 11, tipo: "reto", texto: "Sacale una prenda con los dientes a {target} o clavate 2 tragos." },
-  { id: 12, tipo: "reto", texto: "Pegale una nalgada con la fuerza que elija {target}." },
-  { id: 13, tipo: "verdad", texto: "¿Tuviste alguna vez una fantasía o sueño caliente con {target}?" },
-  { id: 14, tipo: "reto", texto: "Dale un beso a {target} en el lugar del cuerpo que elija." },
-  { id: 15, tipo: "reto", texto: "Mirale fijo a los ojos a {target} a 5cm durante 15 segundos sin reírte o dale un chape." },
-  { id: 16, tipo: "reto", texto: "Tomate un shot o trago directamente del cuerpo o cuello de {target}." },
-  { id: 17, tipo: "verdad", texto: "Confesá qué posición o fantasía te gustaría probar con {target}." },
-  { id: 18, tipo: "reto", texto: "Dejá que {target} te dé un beso donde se le cante." }
-];
 
 export default function App() {
   const [playerId] = useState(getOrCreatePlayerId);
@@ -149,7 +127,9 @@ export default function App() {
         currentChallenge: null,
         nextTarget: null,
         nextPair: null,
-        challenges: DEFAULT_CHALLENGES,
+        spiceLevel: 1, // Nivel 1: Suave/Previa, Nivel 2: Caliente, Nivel 3: Fuego
+        roundCount: 0,
+        challenges: ALL_CHALLENGES,
         players: initialPlayers
       };
 
@@ -324,7 +304,7 @@ export default function App() {
             OnFire 🔥
           </h1>
           <p className="text-slate-400 text-xs sm:text-sm mt-1 font-medium tracking-wide">
-            Juego de Ruleta y Retos Picantes en Tiempo Real
+            Juego de Ruleta y +500 Retos Picantes en Tiempo Real
           </p>
         </div>
 
