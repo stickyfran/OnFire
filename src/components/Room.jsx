@@ -1174,68 +1174,97 @@ export default function Room({
         )}
       </AnimatePresence>
 
-      {/* BARRA DE NIVEL DE PICANTE Y TRAMPA INTEGRADA */}
+      {/* BARRA DE NIVEL DE PICANTE (GRAN BARRA DE FUEGO PROGRESIVA QUE OCUPA TODO EL RECUADRO) */}
       <div className="w-full max-w-lg z-10 my-0.5 sm:my-1 flex-shrink-0">
-        <div className="p-1.5 sm:p-2 bg-slate-900/95 border border-slate-800 rounded-xl sm:rounded-2xl shadow-lg backdrop-blur-md space-y-1.5">
+        <div className="p-1 sm:p-1.5 bg-slate-950/95 border border-slate-800 rounded-2xl shadow-xl backdrop-blur-md relative overflow-hidden">
           
-          {/* Fila 1: Botones de Nivel de Picante (1 a 4) GRANDES Y LEGIBLES */}
-          <div className="flex items-center justify-between gap-1.5">
-            <button
-              onClick={() => canCheat && handleChangeSpiceLevel(1)}
-              disabled={!canCheat}
-              className={`flex-1 py-1.5 sm:py-2 px-1 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1 ${
+          {/* BARRA PROGRESIVA DE FUEGO QUE SE VA LLENANDO */}
+          <div className="relative w-full h-9 sm:h-10 rounded-xl overflow-hidden bg-slate-900/90 border border-slate-800 flex items-center shadow-inner">
+            
+            {/* Animación de llenado de fuego con gradiente dinámico (de tenue a extremo) */}
+            <motion.div
+              className={`absolute top-0 bottom-0 left-0 rounded-xl transition-all duration-500 pointer-events-none ${
                 currentSpice === 1
-                  ? 'bg-amber-500/25 text-amber-300 border border-amber-500/60 shadow-[0_0_12px_rgba(245,158,11,0.4)] font-black'
-                  : 'text-slate-400 hover:text-slate-200'
-              } ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
+                  ? 'bg-gradient-to-r from-amber-800/70 via-amber-600/80 to-amber-500/90 border-r-2 border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.5)]'
+                  : currentSpice === 2
+                  ? 'bg-gradient-to-r from-amber-600/80 via-orange-500/85 to-rose-600/95 border-r-2 border-rose-300 shadow-[0_0_20px_rgba(244,63,94,0.6)]'
+                  : currentSpice === 3
+                  ? 'bg-gradient-to-r from-amber-500/80 via-rose-600/90 to-purple-600 border-r-2 border-purple-300 shadow-[0_0_25px_rgba(168,85,247,0.7)]'
+                  : 'bg-gradient-to-r from-amber-400 via-rose-500 to-red-600 border-r-2 border-amber-200 shadow-[0_0_35px_rgba(239,68,68,0.95)] animate-pulse'
+              }`}
+              animate={{
+                width: `${(currentSpice / 4) * 100}%`
+              }}
+              transition={{ duration: 0.45, ease: "easeOut" }}
             >
-              <span>🌶️</span>
-              <span className="truncate">1. Suave</span>
-            </button>
+              {/* Rayas de resplandor animadas */}
+              <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_8px,rgba(255,255,255,0.1)_8px,rgba(255,255,255,0.1)_16px)] pointer-events-none opacity-60" />
+            </motion.div>
 
-            <button
-              onClick={() => canCheat && handleChangeSpiceLevel(2)}
-              disabled={!canCheat}
-              className={`flex-1 py-1.5 sm:py-2 px-1 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1 ${
-                currentSpice === 2
-                  ? 'bg-rose-500/25 text-rose-300 border border-rose-500/60 shadow-[0_0_12px_rgba(244,63,94,0.5)] font-black'
-                  : 'text-slate-400 hover:text-slate-200'
-              } ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
-            >
-              <span>🔥</span>
-              <span className="truncate">2. Caliente</span>
-            </button>
+            {/* Divisiones y Botones de los 4 Niveles */}
+            <div className="relative z-10 grid grid-cols-4 w-full h-full divide-x divide-slate-800/60">
+              
+              {/* Nivel 1: Suave */}
+              <button
+                type="button"
+                onClick={() => canCheat && handleChangeSpiceLevel(1)}
+                disabled={!canCheat}
+                className={`flex items-center justify-center gap-1 text-[11px] sm:text-xs md:text-sm font-black transition-all px-1 select-none ${
+                  currentSpice >= 1 ? 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)] font-black' : 'text-slate-400 hover:text-slate-200'
+                } ${currentSpice === 1 ? 'scale-105' : ''} ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
+                title={canCheat ? 'Cambiar a Nivel 1: Suave' : 'Nivel 1: Suave'}
+              >
+                <span>🌶️</span>
+                <span className="truncate">Suave</span>
+              </button>
 
-            <button
-              onClick={() => canCheat && handleChangeSpiceLevel(3)}
-              disabled={!canCheat}
-              className={`flex-1 py-1.5 sm:py-2 px-1 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1 ${
-                currentSpice === 3
-                  ? 'bg-purple-600/35 text-purple-300 border border-purple-500/70 shadow-[0_0_14px_rgba(168,85,247,0.6)] font-black'
-                  : 'text-slate-400 hover:text-slate-200'
-              } ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
-            >
-              <span>💀</span>
-              <span className="truncate">3. Fuego</span>
-            </button>
+              {/* Nivel 2: Caliente */}
+              <button
+                type="button"
+                onClick={() => canCheat && handleChangeSpiceLevel(2)}
+                disabled={!canCheat}
+                className={`flex items-center justify-center gap-1 text-[11px] sm:text-xs md:text-sm font-black transition-all px-1 select-none ${
+                  currentSpice >= 2 ? 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)] font-black' : 'text-slate-400 hover:text-slate-200'
+                } ${currentSpice === 2 ? 'scale-105' : ''} ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
+                title={canCheat ? 'Cambiar a Nivel 2: Caliente' : 'Nivel 2: Caliente'}
+              >
+                <span>🔥</span>
+                <span className="truncate">Caliente</span>
+              </button>
 
-            <button
-              onClick={() => canCheat && handleChangeSpiceLevel(4)}
-              disabled={!canCheat}
-              className={`flex-1 py-1.5 sm:py-2 px-1 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1 ${
-                currentSpice === 4
-                  ? 'bg-red-600/35 text-red-300 border border-red-500/80 shadow-[0_0_16px_rgba(239,68,68,0.8)] font-black'
-                  : 'text-slate-400 hover:text-slate-200'
-              } ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
-            >
-              <span className="flex items-center -space-x-0.5">💀🔥</span>
-              <span className="truncate">4. Extremo</span>
-            </button>
+              {/* Nivel 3: Fuego */}
+              <button
+                type="button"
+                onClick={() => canCheat && handleChangeSpiceLevel(3)}
+                disabled={!canCheat}
+                className={`flex items-center justify-center gap-1 text-[11px] sm:text-xs md:text-sm font-black transition-all px-1 select-none ${
+                  currentSpice >= 3 ? 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)] font-black' : 'text-slate-400 hover:text-slate-200'
+                } ${currentSpice === 3 ? 'scale-105' : ''} ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
+                title={canCheat ? 'Cambiar a Nivel 3: Fuego' : 'Nivel 3: Fuego'}
+              >
+                <span>💀</span>
+                <span className="truncate">Fuego</span>
+              </button>
+
+              {/* Nivel 4: Extremo */}
+              <button
+                type="button"
+                onClick={() => canCheat && handleChangeSpiceLevel(4)}
+                disabled={!canCheat}
+                className={`flex items-center justify-center gap-1 text-[11px] sm:text-xs md:text-sm font-black transition-all px-1 select-none ${
+                  currentSpice === 4 ? 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)] font-black animate-pulse' : 'text-slate-400 hover:text-slate-200'
+                } ${currentSpice === 4 ? 'scale-105' : ''} ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
+                title={canCheat ? 'Cambiar a Nivel 4: Extremo' : 'Nivel 4: Extremo'}
+              >
+                <span className="flex items-center -space-x-1">💀🔥</span>
+                <span className="truncate">Extremo</span>
+              </button>
+            </div>
           </div>
 
           {/* Fila 2: Forzar Reto o Verdad (Modo Trampa) */}
           {isCheatActiveVisual && (
-            <div className="pt-1.5 border-t border-slate-800/80 flex items-center justify-between gap-1.5">
+            <div className="pt-1.5 border-t border-slate-800/80 flex items-center justify-between gap-1.5 px-1">
               <span className="text-xs font-bold text-rose-400 flex items-center gap-1 flex-shrink-0">
                 <EyeOff className="w-3.5 h-3.5" /> Forzar:
               </span>
