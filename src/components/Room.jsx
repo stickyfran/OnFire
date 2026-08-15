@@ -885,25 +885,113 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
 
         {/* RULETA CENTRAL */}
         <div className="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center mb-3">
+          
+          {/* ========================================================= */}
+          {/* FUEGO RADIAL GIGANTE ENVOLVIENDO LA RULETA (NIVEL 3)     */}
+          {/* ========================================================= */}
+          {currentSpice === 3 && (
+            <>
+              {/* Resplandor y halo ardiente envolvente */}
+              <motion.div
+                animate={{
+                  scale: [1, 1.18, 0.98, 1.22, 1],
+                  opacity: [0.75, 1, 0.8, 1, 0.75],
+                  rotate: [0, 180, 360]
+                }}
+                transition={{
+                  scale: { repeat: Infinity, duration: 1.4, ease: "easeInOut" },
+                  opacity: { repeat: Infinity, duration: 1.4, ease: "easeInOut" },
+                  rotate: { repeat: Infinity, duration: 8, ease: "linear" }
+                }}
+                className="absolute -inset-4 sm:-inset-6 rounded-full bg-gradient-to-tr from-red-600 via-orange-500 to-amber-300 blur-2xl opacity-90 pointer-events-none mix-blend-screen"
+              />
+
+              {/* Anillo de fuego brillante secundario */}
+              <motion.div
+                animate={{
+                  scale: [1.05, 1.25, 1.05],
+                  opacity: [0.7, 0.95, 0.7],
+                  rotate: [360, 180, 0]
+                }}
+                transition={{
+                  scale: { repeat: Infinity, duration: 1.1, ease: "easeInOut" },
+                  opacity: { repeat: Infinity, duration: 1.1, ease: "easeInOut" },
+                  rotate: { repeat: Infinity, duration: 6, ease: "linear" }
+                }}
+                className="absolute -inset-2 sm:-inset-3 rounded-full bg-gradient-to-br from-amber-400 via-red-600 to-rose-600 blur-lg opacity-85 pointer-events-none mix-blend-screen"
+              />
+
+              {/* Lenguas de fuego y chispas girando por el borde exterior */}
+              <div className="absolute inset-0 pointer-events-none">
+                {[...Array(8)].map((_, i) => {
+                  const angle = (i / 8) * 360;
+                  return (
+                    <motion.div
+                      key={i}
+                      animate={{
+                        rotate: [angle, angle + 360],
+                        scale: [0.8, 1.3, 0.9, 1.4, 0.8],
+                        opacity: [0.7, 1, 0.8, 1, 0.7]
+                      }}
+                      transition={{
+                        rotate: { repeat: Infinity, duration: roomData.isSpinning ? 2 : 5, ease: "linear" },
+                        scale: { repeat: Infinity, duration: 0.9 + (i * 0.1), ease: "easeInOut" }
+                      }}
+                      className="absolute inset-0 flex items-start justify-center"
+                    >
+                      <span className="text-xl sm:text-2xl drop-shadow-[0_0_15px_#f97316] select-none -translate-y-3">
+                        🔥
+                      </span>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* Borde exterior giratorio de la ruleta */}
           <motion.div
             animate={{
               rotate: roomData.isSpinning ? 720 : 0,
-              borderColor: roomData.isSpinning 
+              borderColor: currentSpice === 3
+                ? ['#f97316', '#ef4444', '#f59e0b', '#dc2626', '#f97316']
+                : roomData.isSpinning 
                 ? ['#f43f5e', '#d946ef', '#a855f7', '#f43f5e'] 
                 : currentChallenge?.tipo === 'reto'
                 ? '#f43f5e'
                 : currentChallenge?.tipo === 'verdad'
                 ? '#d946ef'
-                : currentSpice === 3 ? '#ec4899' : currentSpice === 2 ? '#f43f5e' : '#f59e0b'
+                : currentSpice === 2 ? '#f43f5e' : '#f59e0b'
             }}
             transition={{
               rotate: { repeat: roomData.isSpinning ? Infinity : 0, duration: 1.1, ease: "linear" },
-              borderColor: { repeat: Infinity, duration: 1.4 }
+              borderColor: { repeat: Infinity, duration: currentSpice === 3 ? 0.8 : 1.4 }
             }}
-            className="absolute inset-0 rounded-full border-4 border-dashed shadow-[0_0_35px_rgba(244,63,94,0.3)]"
+            className={`absolute inset-0 rounded-full ${
+              currentSpice === 3
+                ? 'border-4 border-amber-400 shadow-[0_0_40px_#ef4444,0_0_70px_#f97316,inset_0_0_20px_#f59e0b]'
+                : 'border-4 border-dashed shadow-[0_0_35px_rgba(244,63,94,0.3)]'
+            }`}
           />
 
-          <div className="w-52 h-52 sm:w-60 sm:h-60 rounded-full bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-700/80 flex flex-col items-center justify-center p-5 text-center shadow-inner relative overflow-hidden">
+          {/* Círculo central de la ruleta */}
+          <div className={`w-52 h-52 sm:w-60 sm:h-60 rounded-full border flex flex-col items-center justify-center p-5 text-center relative overflow-hidden z-10 transition-all ${
+            currentSpice === 3
+              ? 'bg-gradient-to-b from-red-950 via-slate-950 to-red-950 border-amber-500/80 shadow-[inset_0_0_35px_rgba(239,68,68,0.7)]'
+              : 'bg-gradient-to-b from-slate-900 to-slate-950 border-slate-700/80 shadow-inner'
+          }`}>
+            
+            {/* Núcleo de lava ardiente para nivel 3 */}
+            {currentSpice === 3 && (
+              <motion.div
+                animate={{
+                  opacity: [0.35, 0.7, 0.4, 0.75, 0.35],
+                  scale: [0.9, 1.1, 0.95, 1.15, 0.9]
+                }}
+                transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                className="absolute inset-0 bg-radial-gradient from-orange-600/30 via-red-600/20 to-transparent pointer-events-none"
+              />
+            )}
             {roomData.isSpinning ? (
               <motion.div
                 key="spinning"
