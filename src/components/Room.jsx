@@ -1258,23 +1258,32 @@ export default function Room({
 
         </div>
 
-        {/* Indicador de Ronda con Doble Toque Camuflaje */}
-        <div className="flex justify-between items-center px-2 mt-0.5 text-[9px] sm:text-[10px] text-slate-500 font-medium">
+        {/* Indicador de Ronda y Botón Sumar Jugador */}
+        <div className="w-full max-w-lg flex justify-between items-center px-2 mt-0.5 text-[10px] sm:text-[11px] text-slate-400 font-medium flex-shrink-0">
           <span 
             onClick={handleRondaDoubleTap}
-            className="flex items-center gap-1 cursor-pointer select-none active:opacity-75"
+            className="flex items-center gap-1 cursor-pointer select-none active:opacity-75 font-semibold text-slate-300"
             title={canCheat ? "Doble toque para ocultar/mostrar superpoderes de trampa" : ""}
           >
-            <TrendingUp className="w-3 h-3 text-rose-500" /> Ronda #{roomData.roundCount || 0}
+            <TrendingUp className="w-3.5 h-3.5 text-rose-500" /> Ronda #{roomData.roundCount || 0}
           </span>
-          <span>
-            {canCheat ? 'Podés cambiar nivel' : 'Sube automáticamente cada 8 rondas'}
-          </span>
+
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1 text-slate-400 font-bold">
+              <Users className="w-3.5 h-3.5 text-purple-400" /> {playersList.length} jugadores
+            </span>
+            <button
+              onClick={() => setNewPlayerModal(true)}
+              className="px-2.5 py-0.5 rounded-full bg-purple-950/70 hover:bg-purple-900 border border-purple-500/40 text-purple-300 text-[10px] font-bold flex items-center gap-1 transition active:scale-95 shadow-sm"
+            >
+              <Plus className="w-3 h-3" /> Sumar
+            </button>
+          </div>
         </div>
       </div>
 
       {/* ========================================================== */}
-      {/* ÁREA CENTRAL: RULETA CON CORONA SUPERIOR DE RETO/VERDAD    */}
+      {/* ÁREA CENTRAL: RULETA CON JUGADORES ALREDEDOR EN ÓRBITA     */}
       {/* ========================================================== */}
       <main className="w-full max-w-lg flex-1 flex flex-col items-center justify-around my-auto z-10 py-0.5 min-h-0">
         
@@ -1315,12 +1324,13 @@ export default function Room({
           </AnimatePresence>
         </div>
 
-        {/* RULETA CENTRAL */}
-        <div className="relative w-40 h-40 sm:w-52 sm:h-52 md:w-60 md:h-60 flex items-center justify-center my-auto flex-shrink-0">
+        {/* CONTENEDOR DE RULETA CON JUGADORES DISTRIBUIDOS ALREDEDOR */}
+        <div className="relative w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 flex items-center justify-center my-auto flex-shrink-0">
           
-          {/* ========================================================= */}
-          {/* FUEGO RADIAL GIGANTE ENVOLVIENDO LA RULETA (NIVEL 3 y 4)   */}
-          {/* ========================================================= */}
+          {/* Anillo de órbita decorativo */}
+          <div className="absolute inset-3 sm:inset-4 rounded-full border border-dashed border-slate-800/80 pointer-events-none" />
+
+          {/* FUEGO RADIAL GIGANTE ENVOLVIENDO LA RULETA (NIVEL 3 y 4) */}
           {currentSpice >= 3 && (roomData.isSpinning || isFireActive) && (
             <RouletteFireRing isSpinning={roomData.isSpinning} lowSpecsMode={lowSpecsMode} />
           )}
@@ -1334,7 +1344,7 @@ export default function Room({
               duration: roomData.isSpinning ? 2.8 : 0.4,
               ease: roomData.isSpinning ? "easeInOut" : "easeOut"
             }}
-            className={`absolute -inset-1 sm:-inset-1.5 rounded-full border-4 transition-colors duration-500 ${
+            className={`absolute w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-full border-4 transition-colors duration-500 ${
               currentSpice >= 3
                 ? 'border-orange-500 shadow-[0_0_20px_rgba(249,115,22,0.6)]'
                 : roomData.isSpinning
@@ -1348,7 +1358,7 @@ export default function Room({
           />
 
           {/* Círculo central de la ruleta */}
-          <div className={`w-32 h-32 sm:w-42 sm:h-42 md:w-48 md:h-48 rounded-full border flex flex-col items-center justify-center p-2 sm:p-3 text-center relative overflow-hidden z-10 transition-all ${
+          <div className={`w-26 h-26 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full border flex flex-col items-center justify-center p-1.5 text-center relative overflow-hidden z-10 transition-all ${
             currentSpice >= 3
               ? 'bg-gradient-to-b from-red-950 via-slate-950 to-red-950 border-amber-500/80 shadow-[inset_0_0_25px_rgba(239,68,68,0.7)]'
               : 'bg-gradient-to-b from-slate-900 to-slate-950 border-slate-700/80 shadow-inner'
@@ -1363,13 +1373,13 @@ export default function Room({
                 key="spinning"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="flex flex-col items-center"
+                className="flex flex-col items-center px-1"
               >
-                <Flame className="w-7 h-7 sm:w-8 sm:h-8 text-rose-500 animate-pulse mb-1" />
-                <span className="text-base sm:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-fuchsia-400 tracking-wide uppercase px-1 line-clamp-1">
+                <Flame className="w-6 h-6 sm:w-7 sm:h-7 text-rose-500 animate-pulse mb-0.5" />
+                <span className="text-sm sm:text-base font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-fuchsia-400 tracking-wide uppercase truncate max-w-[90px]">
                   {currentPlayerInAnimation.name}
                 </span>
-                <span className="text-[9px] sm:text-[10px] text-slate-400 mt-0.5 font-medium">Buscando víctima...</span>
+                <span className="text-[8px] sm:text-[9px] text-slate-400 font-medium">Girando...</span>
               </motion.div>
             ) : roomData.currentResult ? (
               <motion.div
@@ -1382,39 +1392,39 @@ export default function Room({
                 {/* MENSAJE PERSONALIZADO SEGÚN QUIÉN SOS */}
                 {isMeActor ? (
                   <div className="flex flex-col items-center">
-                    <span className="px-2 py-0.5 bg-rose-500/30 text-rose-300 text-[9px] font-black uppercase rounded-full border border-rose-500/50 mb-0.5 animate-pulse">
-                      🔥 ¡TE TOCA A VOS!
+                    <span className="px-1.5 py-0.2 bg-rose-500/30 text-rose-300 text-[8px] font-black uppercase rounded-full border border-rose-500/50 mb-0.5 animate-pulse">
+                      🔥 ¡TE TOCA!
                     </span>
-                    <h2 className="text-base sm:text-xl font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] truncate max-w-full">
+                    <h2 className="text-xs sm:text-sm md:text-base font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] truncate max-w-[100px]">
                       {roomData.currentResult.name}
                     </h2>
                     {roomData.currentPair && (
-                      <span className="text-[10px] text-pink-300 font-bold mt-0.5 truncate max-w-full">
-                        Con: <strong className="underline">{roomData.currentPair.name}</strong>
+                      <span className="text-[8px] sm:text-[9px] text-pink-300 font-bold mt-0.5 truncate max-w-[100px]">
+                        Con: {roomData.currentPair.name}
                       </span>
                     )}
                   </div>
                 ) : isMeTarget ? (
                   <div className="flex flex-col items-center">
-                    <span className="px-2 py-0.5 bg-purple-500/30 text-purple-300 text-[9px] font-black uppercase rounded-full border border-purple-500/50 mb-0.5 animate-pulse">
-                      💋 ¡HACER CON VOS!
+                    <span className="px-1.5 py-0.2 bg-purple-500/30 text-purple-300 text-[8px] font-black uppercase rounded-full border border-purple-500/50 mb-0.5 animate-pulse">
+                      💋 ¡CON VOS!
                     </span>
-                    <h2 className="text-sm sm:text-lg font-black text-purple-200 truncate max-w-full">
+                    <h2 className="text-xs sm:text-sm font-black text-purple-200 truncate max-w-[100px]">
                       {roomData.currentResult.name} ⚡ Vos
                     </h2>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center">
-                    <span className="text-[9px] uppercase font-bold tracking-widest text-rose-400 mb-0.5 flex items-center gap-1">
-                      <Sparkles className="w-2.5 h-2.5" /> ¡Le Toca A!
+                    <span className="text-[8px] uppercase font-bold tracking-widest text-rose-400 mb-0.5 flex items-center gap-0.5">
+                      <Sparkles className="w-2 h-2" /> ¡Le Toca!
                     </span>
-                    <h2 className="text-base sm:text-xl font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] truncate max-w-full">
+                    <h2 className="text-xs sm:text-sm md:text-base font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] truncate max-w-[100px]">
                       {roomData.currentResult.name}
                     </h2>
                     {roomData.currentPair && (
-                      <div className="mt-0.5 pt-0.5 border-t border-slate-800 flex items-center gap-1 text-[10px] text-purple-300 font-medium">
-                        <HeartHandshake className="w-2.5 h-2.5 text-pink-400 flex-shrink-0" />
-                        <span className="truncate">Con: <strong className="text-pink-300">{roomData.currentPair.name}</strong></span>
+                      <div className="mt-0.5 pt-0.5 border-t border-slate-800 flex items-center gap-0.5 text-[8px] sm:text-[9px] text-purple-300 font-medium">
+                        <HeartHandshake className="w-2 h-2 text-pink-400 flex-shrink-0" />
+                        <span className="truncate max-w-[90px]">Con: {roomData.currentPair.name}</span>
                       </div>
                     )}
                   </div>
@@ -1422,12 +1432,80 @@ export default function Room({
               </motion.div>
             ) : (
               <div className="flex flex-col items-center text-slate-400">
-                <Flame className="w-7 h-7 sm:w-8 sm:h-8 text-rose-500/60 mb-1" />
-                <span className="text-xs sm:text-sm font-semibold">Listo para jugar</span>
-                <span className="text-[9px] text-slate-500">Tocá girar ruleta</span>
+                <Flame className="w-6 h-6 text-rose-500/60 mb-0.5" />
+                <span className="text-xs font-semibold text-slate-300">Ruleta</span>
+                <span className="text-[8px] text-slate-500">Tocá girar</span>
               </div>
             )}
           </div>
+
+          {/* JUGADORES DISTRIBUIDOS EN ÓRBITA ALREDEDOR DE LA RULETA */}
+          {playersList.map((player, idx) => {
+            const total = playersList.length;
+            const angleRad = ((idx * (360 / Math.max(1, total))) - 90) * (Math.PI / 180);
+            const radiusPercent = 42; // Distancia radial responsiva en %
+            const leftPercent = 50 + radiusPercent * Math.cos(angleRad);
+            const topPercent = 50 + radiusPercent * Math.sin(angleRad);
+
+            const isSpinningSelected = roomData.isSpinning && displayIndex === idx;
+            const isResultWinner = !roomData.isSpinning && (roomData.currentResult?.id === player.id || roomData.currentResult?.claimedBy === player.id);
+            const isResultPair = !roomData.isSpinning && (roomData.currentPair?.id === player.id || roomData.currentPair?.claimedBy === player.id);
+            const isMe = player.claimedBy === playerId || player.id === playerId;
+            const isTarget1 = isCheatActiveVisual && roomData.nextTarget === player.id;
+            const isTarget2 = isCheatActiveVisual && roomData.nextPair === player.id;
+
+            return (
+              <div
+                key={player.id}
+                onClick={() => canCheat && handleToggleCheatPlayer(player)}
+                style={{
+                  left: `${leftPercent}%`,
+                  top: `${topPercent}%`,
+                  transform: 'translate(-50%, -50%)',
+                }}
+                className={`absolute z-20 transition-all duration-200 select-none ${
+                  canCheat ? 'cursor-pointer' : ''
+                }`}
+              >
+                <div
+                  className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border text-[10px] sm:text-xs font-bold flex items-center gap-1 shadow-md whitespace-nowrap transition-all duration-150 ${
+                    isSpinningSelected
+                      ? 'bg-amber-500 text-slate-950 border-amber-300 shadow-[0_0_20px_#f59e0b] scale-125 font-black ring-2 ring-amber-400 z-30'
+                      : isResultWinner
+                      ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white border-rose-300 shadow-[0_0_20px_rgba(244,63,94,0.9)] ring-2 ring-rose-400 scale-115 font-black z-25 animate-pulse'
+                      : isResultPair
+                      ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white border-purple-300 shadow-[0_0_20px_rgba(168,85,247,0.9)] ring-2 ring-purple-400 scale-110 font-black z-25 animate-pulse'
+                      : isTarget1
+                      ? 'bg-rose-950 border-rose-500 text-rose-300 ring-1 ring-rose-500 shadow-md scale-105'
+                      : isTarget2
+                      ? 'bg-purple-950 border-purple-500 text-purple-300 ring-1 ring-purple-500 shadow-md scale-105'
+                      : isMe
+                      ? 'bg-slate-900/95 border-emerald-500/60 text-emerald-300 shadow-sm'
+                      : 'bg-slate-900/90 border-slate-700/80 text-slate-200 hover:border-slate-500'
+                  }`}
+                >
+                  {isSpinningSelected ? (
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-950 animate-ping" />
+                  ) : isResultWinner ? (
+                    <span>🔥</span>
+                  ) : isResultPair ? (
+                    <span>💋</span>
+                  ) : isTarget1 ? (
+                    <span>🎯</span>
+                  ) : isTarget2 ? (
+                    <span>💋</span>
+                  ) : (
+                    <span className={`w-1.5 h-1.5 rounded-full ${isMe ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+                  )}
+
+                  <span className="max-w-[65px] sm:max-w-[85px] truncate">{player.name}</span>
+                  {isMe && !isSpinningSelected && !isResultWinner && !isResultPair && (
+                    <span className="text-[8px] text-emerald-400 font-extrabold">(Vos)</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Tarjeta del Reto / Verdad con Diseño Cautivante */}
@@ -1480,6 +1558,72 @@ export default function Room({
           )}
         </AnimatePresence>
 
+        {/* BARRA FLOTANTE DE TRAMPA COMPLETA */}
+        {isCheatActiveVisual && (target1Player || target2Player || fixedChallenge || roomData.nextType) && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full max-w-lg mb-1 p-2 bg-slate-900/95 border border-rose-500/50 rounded-xl flex flex-col gap-1.5 text-xs z-20 shadow-[0_0_15px_rgba(244,63,94,0.3)] backdrop-blur-md flex-shrink-0"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 truncate">
+                <span className="font-bold text-rose-400 flex items-center gap-1">
+                  <EyeOff className="w-3 h-3" /> Trampa:
+                </span>
+                {target1Player ? (
+                  <span className="px-1.5 py-0.2 bg-rose-500/20 border border-rose-500/40 rounded text-rose-300 truncate font-semibold text-[10px]">
+                    🎯 {target1Player.name}
+                  </span>
+                ) : (
+                  <span className="text-[9px] text-slate-500">🎯 (1º)</span>
+                )}
+                {target2Player ? (
+                  <span className="px-1.5 py-0.2 bg-purple-500/20 border border-purple-500/40 rounded text-purple-300 truncate font-semibold text-[10px]">
+                    💋 {target2Player.name}
+                  </span>
+                ) : (
+                  <span className="text-[9px] text-slate-500">💋 (2º)</span>
+                )}
+                {roomData.nextType && (
+                  <span className="px-1.5 py-0.2 bg-pink-500/20 border border-pink-500/40 rounded text-pink-300 truncate font-semibold text-[10px]">
+                    {roomData.nextType === 'reto' ? '🔥 Reto' : '💜 Verdad'}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setShowCheatChallengeModal(true)}
+                  className={`px-1.5 py-0.5 rounded text-[9px] font-bold flex items-center gap-0.5 transition ${
+                    fixedChallenge 
+                      ? 'bg-pink-600 text-white shadow-[0_0_8px_rgba(236,72,153,0.5)]' 
+                      : 'bg-slate-800 hover:bg-slate-700 text-pink-300 border border-pink-500/30'
+                  }`}
+                >
+                  <FileText className="w-2.5 h-2.5" />
+                  {fixedChallenge ? 'Reto Armado ✓' : '+ Fijar Reto'}
+                </button>
+
+                <button
+                  onClick={handleClearTrap}
+                  className="p-0.5 hover:bg-slate-800 rounded text-slate-400 hover:text-white"
+                  title="Limpiar toda la trampa"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+
+            {/* Preview del reto armado */}
+            {fixedChallenge && (
+              <div className="px-1.5 py-0.5 bg-slate-950/80 rounded border border-pink-500/30 text-[10px] text-slate-300 flex items-center justify-between">
+                <span className="truncate italic">"{fixedChallenge.texto}"</span>
+                <span className="text-[9px] font-bold uppercase text-pink-400 ml-1">{fixedChallenge.tipo}</span>
+              </div>
+            )}
+          </motion.div>
+        )}
+
         {/* Botón de Giro */}
         <button
           onClick={handleSpin}
@@ -1490,182 +1634,6 @@ export default function Room({
           {roomData.isSpinning ? 'Eligiendo víctimas...' : 'Girar Ruleta'}
         </button>
       </main>
-
-      {/* BARRA FLOTANTE DE TRAMPA COMPLETA (Víctima 1 + Víctima 2 + RETO FIJADO + TIPO FORZADO) */}
-      {isCheatActiveVisual && (target1Player || target2Player || fixedChallenge || roomData.nextType) && (
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-lg mb-1 p-2 bg-slate-900/95 border border-rose-500/50 rounded-xl flex flex-col gap-1.5 text-xs z-20 shadow-[0_0_15px_rgba(244,63,94,0.3)] backdrop-blur-md flex-shrink-0"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 truncate">
-              <span className="font-bold text-rose-400 flex items-center gap-1">
-                <EyeOff className="w-3 h-3" /> Trampa:
-              </span>
-              {target1Player ? (
-                <span className="px-1.5 py-0.2 bg-rose-500/20 border border-rose-500/40 rounded text-rose-300 truncate font-semibold text-[10px]">
-                  🎯 {target1Player.name}
-                </span>
-              ) : (
-                <span className="text-[9px] text-slate-500">🎯 (1º)</span>
-              )}
-              {target2Player ? (
-                <span className="px-1.5 py-0.2 bg-purple-500/20 border border-purple-500/40 rounded text-purple-300 truncate font-semibold text-[10px]">
-                  💋 {target2Player.name}
-                </span>
-              ) : (
-                <span className="text-[9px] text-slate-500">💋 (2º)</span>
-              )}
-              {roomData.nextType && (
-                <span className="px-1.5 py-0.2 bg-pink-500/20 border border-pink-500/40 rounded text-pink-300 truncate font-semibold text-[10px]">
-                  {roomData.nextType === 'reto' ? '🔥 Reto' : '💜 Verdad'}
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setShowCheatChallengeModal(true)}
-                className={`px-1.5 py-0.5 rounded text-[9px] font-bold flex items-center gap-0.5 transition ${
-                  fixedChallenge 
-                    ? 'bg-pink-600 text-white shadow-[0_0_8px_rgba(236,72,153,0.5)]' 
-                    : 'bg-slate-800 hover:bg-slate-700 text-pink-300 border border-pink-500/30'
-                }`}
-              >
-                <FileText className="w-2.5 h-2.5" />
-                {fixedChallenge ? 'Reto Armado ✓' : '+ Fijar Reto'}
-              </button>
-
-              <button
-                onClick={handleClearTrap}
-                className="p-0.5 hover:bg-slate-800 rounded text-slate-400 hover:text-white"
-                title="Limpiar toda la trampa"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          </div>
-
-          {/* Preview del reto armado */}
-          {fixedChallenge && (
-            <div className="px-1.5 py-0.5 bg-slate-950/80 rounded border border-pink-500/30 text-[10px] text-slate-300 flex items-center justify-between">
-              <span className="truncate italic">"{fixedChallenge.texto}"</span>
-              <span className="text-[9px] font-bold uppercase text-pink-400 ml-1">{fixedChallenge.tipo}</span>
-            </div>
-          )}
-        </motion.div>
-      )}
-
-      {/* LISTA DE JUGADORES */}
-      <footer className="w-full max-w-lg z-10 flex-shrink-0 mt-0.5">
-        <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-1 px-1">
-          <span className="flex items-center gap-1">
-            <Users className="w-3 h-3 text-purple-400" />
-            Jugadores ({playersList.length})
-          </span>
-          <div className="flex items-center gap-1.5">
-            {isCheatActiveVisual && (
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setShowCheatChallengeModal(true)}
-                  className="text-[9px] text-pink-400 hover:text-pink-300 flex items-center gap-0.5 font-bold bg-pink-500/10 px-1.5 py-0.5 rounded border border-pink-500/30"
-                >
-                  <FileText className="w-2.5 h-2.5" /> Reto Trampa
-                </button>
-              </div>
-            )}
-            <button
-              onClick={() => setNewPlayerModal(true)}
-              className="text-[10px] text-purple-300 hover:text-purple-100 flex items-center gap-0.5 font-bold"
-            >
-              <Plus className="w-3 h-3" /> Sumar
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-1.5 max-h-20 sm:max-h-28 overflow-y-auto pr-0.5">
-          {playersList.map((player, idx) => {
-            const isSpinningSelected = roomData.isSpinning && displayIndex === idx;
-            const isResultWinner = !roomData.isSpinning && (roomData.currentResult?.id === player.id || roomData.currentResult?.claimedBy === player.id);
-            const isResultPair = !roomData.isSpinning && (roomData.currentPair?.id === player.id || roomData.currentPair?.claimedBy === player.id);
-            const isMe = player.claimedBy === playerId || player.id === playerId;
-            const isTarget1 = isCheatActiveVisual && roomData.nextTarget === player.id;
-            const isTarget2 = isCheatActiveVisual && roomData.nextPair === player.id;
-            const isUnclaimed = player.isClaimed === false;
-
-            return (
-              <div
-                key={player.id}
-                onClick={() => canCheat && handleToggleCheatPlayer(player)}
-                className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl border text-xs font-medium flex items-center justify-between transition-all duration-150 select-none ${
-                  canCheat ? 'cursor-pointer' : ''
-                } ${
-                  isSpinningSelected
-                    ? 'bg-gradient-to-r from-rose-600/40 via-amber-500/40 to-rose-600/40 border-amber-300 shadow-[0_0_18px_rgba(245,158,11,0.9)] scale-105 text-amber-200 font-black ring-2 ring-amber-400 z-10'
-                    : isResultWinner
-                    ? 'bg-rose-950/80 border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.6)] ring-2 ring-rose-500 font-black text-rose-200'
-                    : isResultPair
-                    ? 'bg-purple-950/80 border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.6)] ring-2 ring-purple-500 font-black text-purple-200'
-                    : isTarget1
-                    ? 'bg-rose-950/70 border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.3)] ring-1 ring-rose-500'
-                    : isTarget2
-                    ? 'bg-purple-950/70 border-purple-500 shadow-[0_0_12px_rgba(168,85,247,0.3)] ring-1 ring-purple-500'
-                    : isUnclaimed
-                    ? 'bg-slate-900/40 border-dashed border-slate-800 text-slate-400'
-                    : 'bg-slate-900/80 border-slate-800 hover:border-slate-700 text-slate-200'
-                }`}
-              >
-                <div className="flex items-center gap-1.5 truncate">
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                    isSpinningSelected ? 'bg-amber-300 animate-ping' :
-                    isMe ? 'bg-emerald-400' : isUnclaimed ? 'bg-amber-500/50' : 'bg-slate-600'
-                  }`} />
-                  <span className={`truncate ${
-                    isSpinningSelected ? 'text-amber-200 font-black text-xs' :
-                    isMe ? 'text-emerald-300 font-bold' : isUnclaimed ? 'text-slate-400 italic' : 'text-slate-200'
-                  }`}>
-                    {player.name} {isMe && '(Vos)'}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  {/* Badges de trampa */}
-                  {isCheatActiveVisual && (
-                    <>
-                      {isTarget1 && (
-                        <span className="px-1.5 py-0.2 bg-rose-500 text-white rounded text-[9px] font-black">
-                          1º
-                        </span>
-                      )}
-                      {isTarget2 && (
-                        <span className="px-1.5 py-0.2 bg-purple-500 text-white rounded text-[9px] font-black">
-                          2º
-                        </span>
-                      )}
-                    </>
-                  )}
-
-                  {/* Botón eliminar jugador */}
-                  {(isHost || canCheat) && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeletePlayer(player.id);
-                      }}
-                      className="p-1 text-slate-500 hover:text-rose-400 transition"
-                      title="Eliminar jugador"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </footer>
 
       {/* ========================================================== */}
       {/* MODAL QR CODE DE LA SALA PARA ESCANEAR CON EL CELULAR      */}
