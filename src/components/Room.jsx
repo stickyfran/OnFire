@@ -1465,15 +1465,12 @@ export default function Room({
                     <span className="px-2 py-0.5 bg-rose-500/30 text-rose-300 text-[9px] sm:text-[10px] font-black uppercase rounded-full border border-rose-500/50 mb-0.5 animate-pulse">
                       🔥 ¡TE TOCA!
                     </span>
-                    <h2 className="text-sm sm:text-base md:text-lg font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] truncate max-w-[115px] sm:max-w-[135px] flex items-center justify-center gap-1">
-                      <span className="text-base sm:text-lg">{roomData.currentResult.avatar || '🔥'}</span>
-                      <span className="truncate">{roomData.currentResult.name}</span>
+                    <h2 className="text-base sm:text-lg md:text-xl font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] truncate max-w-[125px] sm:max-w-[145px]">
+                      {roomData.currentResult.name}
                     </h2>
                     {roomData.currentPair && (
-                      <span className="text-[9px] sm:text-[10px] text-pink-300 font-bold mt-0.5 truncate max-w-[115px] flex items-center justify-center gap-1">
-                        <span>Con:</span>
-                        <span>{roomData.currentPair.avatar || '💋'}</span>
-                        <span className="truncate">{roomData.currentPair.name}</span>
+                      <span className="text-[10px] sm:text-xs text-pink-300 font-bold mt-0.5 truncate max-w-[125px]">
+                        Con: {roomData.currentPair.name}
                       </span>
                     )}
                   </div>
@@ -1482,10 +1479,8 @@ export default function Room({
                     <span className="px-2 py-0.5 bg-purple-500/30 text-purple-300 text-[9px] sm:text-[10px] font-black uppercase rounded-full border border-purple-500/50 mb-0.5 animate-pulse">
                       💋 ¡CON VOS!
                     </span>
-                    <h2 className="text-xs sm:text-sm md:text-base font-black text-purple-200 truncate max-w-[115px] sm:max-w-[135px] flex items-center justify-center gap-1">
-                      <span className="text-sm sm:text-base">{roomData.currentResult.avatar || '🔥'}</span>
-                      <span className="truncate">{roomData.currentResult.name}</span>
-                      <span>⚡ Vos</span>
+                    <h2 className="text-sm sm:text-base md:text-lg font-black text-purple-200 truncate max-w-[125px] sm:max-w-[145px]">
+                      {roomData.currentResult.name} <span className="text-xs text-purple-300">(Vos)</span>
                     </h2>
                   </div>
                 ) : (
@@ -1493,17 +1488,13 @@ export default function Room({
                     <span className="text-[9px] sm:text-[10px] uppercase font-black tracking-widest text-rose-400 mb-0.5 flex items-center gap-0.5">
                       <Sparkles className="w-2.5 h-2.5" /> ¡Le Toca!
                     </span>
-                    <h2 className="text-sm sm:text-base md:text-lg font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] truncate max-w-[115px] sm:max-w-[135px] flex items-center justify-center gap-1">
-                      <span className="text-base sm:text-lg">{roomData.currentResult.avatar || '🔥'}</span>
-                      <span className="truncate">{roomData.currentResult.name}</span>
+                    <h2 className="text-base sm:text-lg md:text-xl font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] truncate max-w-[125px] sm:max-w-[145px]">
+                      {roomData.currentResult.name}
                     </h2>
                     {roomData.currentPair && (
-                      <div className="mt-0.5 pt-0.5 border-t border-slate-800 flex items-center justify-center gap-1 text-[9px] sm:text-[10px] text-purple-300 font-bold">
-                        <HeartHandshake className="w-3 h-3 text-pink-400 flex-shrink-0" />
-                        <span className="truncate max-w-[100px] flex items-center gap-1">
-                          <span>Con:</span>
-                          <span>{roomData.currentPair.avatar || '💋'}</span>
-                          <span className="truncate">{roomData.currentPair.name}</span>
+                      <div className="mt-0.5 pt-0.5 border-t border-slate-800 flex items-center justify-center text-[10px] sm:text-xs text-purple-300 font-bold">
+                        <span className="truncate max-w-[120px]">
+                          Con: {roomData.currentPair.name}
                         </span>
                       </div>
                     )}
