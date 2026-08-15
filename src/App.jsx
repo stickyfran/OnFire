@@ -16,7 +16,10 @@ import {
   CheckCircle2, 
   UserCheck, 
   QrCode,
-  Zap
+  Zap,
+  Maximize,
+  Minimize,
+  Smartphone
 } from 'lucide-react';
 
 // Generador de ID único persistente en LocalStorage
@@ -50,7 +53,44 @@ export default function App() {
   // Lista de todos los jugadores de la sala para elegir en 1 toque
   const [allRoomPlayers, setAllRoomPlayers] = useState([]);
   const [stepJoin, setStepJoin] = useState('input_code'); // 'input_code' | 'choose_name'
-  const [roomDataCache, setRoomDataCache] = useState(null);
+  // Estado de Pantalla Completa
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showIOSTip, setShowIOSTip] = useState(false);
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(!!(document.fullscreenElement || document.webkitFullscreenElement));
+    };
+
+    document.addEventListener('fullscreenchange', handleFsChange);
+    document.addEventListener('webkitfullscreenchange', handleFsChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFsChange);
+      document.removeEventListener('webkitfullscreenchange', handleFsChange);
+    };
+  }, []);
+
+  const handleToggleFullscreen = () => {
+    const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+    if (!isFull) {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else if (document.documentElement.webkitRequestFullscreen) {
+        document.documentElement.webkitRequestFullscreen();
+      } else if (isIOS) {
+        setShowIOSTip(true);
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
+    }
+  };
 
   // Auto-Actualización obligatoria a la última versión
   useEffect(() => {
@@ -535,6 +575,63 @@ export default function App() {
         }}
         className="absolute -top-32 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-rose-600/15 rounded-full blur-[100px] pointer-events-none"
       />
+
+      {/* Botón Flotante Pantalla Completa en Welcome */}
+      <div className="absolute top-4 right-4 z-20">
+        <button
+          type="button"
+          onClick={handleToggleFullscreen}
+          className="p-2.5 bg-slate-900/90 border border-slate-800 hover:border-slate-600 rounded-2xl text-slate-300 hover:text-white transition shadow-lg flex items-center gap-1.5 text-xs font-semibold backdrop-blur-md active:scale-95"
+          title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+        >
+          {isFullscreen ? <Minimize className="w-4 h-4 text-amber-400" /> : <Maximize className="w-4 h-4" />}
+          <span className="hidden sm:inline">{isFullscreen ? 'Salir' : 'Pantalla Completa'}</span>
+        </button>
+      </div>
+
+      {/* Modal Instructivo iPhone Safari */}
+      <AnimatePresence>
+        {showIOSTip && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 15 }}
+              className="bg-slate-900 border-2 border-rose-500/50 p-6 rounded-3xl w-full max-w-sm shadow-2xl space-y-4 text-center flex flex-col items-center relative overflow-hidden"
+            >
+              <div className="p-3 bg-rose-500/20 rounded-2xl text-rose-400">
+                <Smartphone className="w-8 h-8" />
+              </div>
+
+              <div>
+                <h3 className="text-lg font-black text-white">Pantalla Completa en iPhone</h3>
+                <p className="text-xs text-slate-300 mt-2 leading-relaxed text-left bg-slate-800/80 p-3.5 rounded-2xl border border-slate-700/60">
+                  En Safari de iOS, para jugar sin barras del navegador:
+                  <br /><br />
+                  1. Tocá el botón <strong>Compartir (⎋)</strong> abajo en Safari.
+                  <br />
+                  2. Seleccioná <strong>"Agregar a Inicio" ➕</strong>.
+                  <br />
+                  3. Abrí el icono <strong>OnFire 🔥</strong> desde tu inicio y listo.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowIOSTip(false)}
+                className="w-full py-3 bg-gradient-to-r from-rose-600 to-pink-600 text-white font-bold rounded-xl text-sm transition shadow-lg active:scale-95"
+              >
+                ¡Entendido!
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* CONTENEDOR CENTRAL GRANDE Y ESPACIOSO */}
       <div className="w-full max-w-lg z-10 py-4">
