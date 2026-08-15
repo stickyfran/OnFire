@@ -366,6 +366,10 @@ export default function Room({
   const [extraPlayerName, setExtraPlayerName] = useState('');
   const [newPlayerAvatar, setNewPlayerAvatar] = useState(() => getRandomAvatar());
   
+  // Modal de acción al tocar jugador en la ruleta (Admin / Trampa)
+  const [selectedPlayerForAction, setSelectedPlayerForAction] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   // Estado para ocultar/mostrar superpoderes de trampa con doble toque en #Ronda N
   const [cheatUIVisible, setCheatUIVisible] = useState(true);
   const lastTapRef = useRef(0);
@@ -583,7 +587,8 @@ export default function Room({
     showCheatChallengeModal,
     showQRModal,
     newPlayerModal,
-    showAdminPanel
+    showAdminPanel,
+    selectedPlayerForAction
   });
 
   useEffect(() => {
@@ -591,9 +596,10 @@ export default function Room({
       showCheatChallengeModal,
       showQRModal,
       newPlayerModal,
-      showAdminPanel
+      showAdminPanel,
+      selectedPlayerForAction
     };
-  }, [showCheatChallengeModal, showQRModal, newPlayerModal, showAdminPanel]);
+  }, [showCheatChallengeModal, showQRModal, newPlayerModal, showAdminPanel, selectedPlayerForAction]);
 
   useEffect(() => {
     // Empujar estado inicial para que haya historial disponible para capturar
@@ -607,7 +613,8 @@ export default function Room({
         showCheatChallengeModal: isCheatOpen,
         showQRModal: isQROpen,
         newPlayerModal: isNewPlayerOpen,
-        showAdminPanel: isMenuOpen
+        showAdminPanel: isMenuOpen,
+        selectedPlayerForAction: isPlayerActionOpen
       } = modalsRef.current;
 
       if (isCheatOpen) {
@@ -620,6 +627,11 @@ export default function Room({
       }
       if (isNewPlayerOpen) {
         setNewPlayerModal(false);
+        return;
+      }
+      if (isPlayerActionOpen) {
+        setSelectedPlayerForAction(null);
+        setShowDeleteConfirm(false);
         return;
       }
       if (isMenuOpen) {
@@ -838,18 +850,39 @@ export default function Room({
     await updateDoc(roomRef, { nextTarget: null, nextPair: null, nextChallenge: null, nextType: null });
   };
 
-  // ELIMINAR JUGADOR (Host o Papito)
+  // CLIC EN CÁPSULA DE JUGADOR ALREDEDOR DE LA RULETA (Admin / Trampa)
+  const handlePlayerChipClick = (player) => {
+    if (isHost || canCheat) {
+      setSelectedPlayerForAction(player);
+      setShowDeleteConfirm(false);
+      if (navigator.vibrate) navigator.vibrate(30);
+    }
+  };
+
+  // CONFIRMAR ELIMINACIÓN DE JUGADOR
+  const handleConfirmDeletePlayer = async () => {
+    if (!selectedPlayerForAction) return;
+    const playerToDeleteId = selectedPlayerForAction.id;
+    const roomRef = doc(db, 'rooms', roomId);
+    const updatedPlayers = (roomData.players || []).filter(p => p.id !== playerToDeleteId);
+    
+    const updatePayload = { players: updatedPlayers };
+    if (roomData.nextTarget === playerToDeleteId) updatePayload.nextTarget = null;
+    if (roomData.nextPair === playerToDeleteId) updatePayload.nextPair = null;
+
+    await updateDoc(roomRef, updatePayload);
+    setSelectedPlayerForAction(null);
+    setShowDeleteConfirm(false);
+    if (navigator.vibrate) navigator.vibrate([40, 40, 80]);
+  };
+
+  // ELIMINAR JUGADOR DESDE EL PANEL (Host o Papito)
   const handleDeletePlayer = async (playerToDeleteId) => {
     if (!isHost && !canCheat) return;
-    if (confirm('¿Seguro que querés eliminar a este jugador de la sala?')) {
-      const roomRef = doc(db, 'rooms', roomId);
-      const updatedPlayers = (roomData.players || []).filter(p => p.id !== playerToDeleteId);
-      
-      const updatePayload = { players: updatedPlayers };
-      if (roomData.nextTarget === playerToDeleteId) updatePayload.nextTarget = null;
-      if (roomData.nextPair === playerToDeleteId) updatePayload.nextPair = null;
-
-      await updateDoc(roomRef, updatePayload);
+    const player = (roomData.players || []).find(p => p.id === playerToDeleteId);
+    if (player) {
+      setSelectedPlayerForAction(player);
+      setShowDeleteConfirm(true);
     }
   };
 
@@ -1477,14 +1510,14 @@ export default function Room({
             return (
               <div
                 key={player.id}
-                onClick={() => canCheat && handleToggleCheatPlayer(player)}
+                onClick={() => handlePlayerChipClick(player)}
                 style={{
                   left: `${leftPercent}%`,
                   top: `${topPercent}%`,
                   transform: 'translate(-50%, -50%)',
                 }}
                 className={`absolute z-20 transition-all duration-200 select-none ${
-                  canCheat ? 'cursor-pointer' : ''
+                  (isHost || canCheat) ? 'cursor-pointer active:scale-95' : ''
                 }`}
               >
                 <div
@@ -2003,6 +2036,157 @@ export default function Room({
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL DE ACCIÓN Y ELIMINACIÓN DE JUGADOR AL TOCARLO EN LA RULETA (ADMIN / TRAMPA) */}
+      <AnimatePresence>
+        {selectedPlayerForAction && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-slate-900 border border-slate-800 p-5 sm:p-6 rounded-3xl w-full max-w-sm shadow-2xl space-y-4"
+            >
+              {showDeleteConfirm ? (
+                /* Vista de Confirmación de Eliminación */
+                <div className="space-y-4 text-center">
+                  <div className="w-16 h-16 mx-auto rounded-2xl bg-rose-500/20 border border-rose-500/50 flex items-center justify-center text-3xl shadow-lg animate-pulse">
+                    <span>{selectedPlayerForAction.avatar || '🔥'}</span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-black text-white">
+                      ¿Eliminar a "{selectedPlayerForAction.name}"?
+                    </h3>
+                    <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                      Se quitará su casillero de la ruleta y ya no participará en los retos de la previa.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="w-1/2 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-2xl text-xs transition active:scale-95"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmDeletePlayer}
+                      className="w-1/2 py-3 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-black rounded-2xl text-xs shadow-lg shadow-rose-900/40 transition active:scale-95 flex items-center justify-center gap-1.5"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>Sí, Eliminar</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Vista de Acciones del Jugador */
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500/20 to-purple-600/20 border border-rose-500/40 flex items-center justify-center text-2xl shadow-inner flex-shrink-0">
+                        <span>{selectedPlayerForAction.avatar || '🔥'}</span>
+                      </div>
+                      <div className="truncate">
+                        <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-1.5 truncate">
+                          <span className="truncate">{selectedPlayerForAction.name}</span>
+                          {(selectedPlayerForAction.id === playerId || selectedPlayerForAction.claimedBy === playerId) && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold flex-shrink-0">
+                              Vos
+                            </span>
+                          )}
+                        </h3>
+                        <span className="text-xs text-slate-400 font-medium">Opciones de jugador</span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setSelectedPlayerForAction(null)}
+                      className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-sm font-bold transition flex-shrink-0"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* Superpoderes de Trampa si está activo */}
+                  {canCheat && (
+                    <div className="space-y-2">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1">
+                        <EyeOff className="w-3.5 h-3.5" /> Superpoderes de Trampa:
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleToggleCheatPlayer(selectedPlayerForAction);
+                            setSelectedPlayerForAction(null);
+                          }}
+                          className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 ${
+                            roomData.nextTarget === selectedPlayerForAction.id
+                              ? 'bg-rose-600 text-white border-rose-400 shadow-md'
+                              : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-rose-500/60'
+                          }`}
+                        >
+                          <span>🎯 1º (Actor)</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const roomRef = doc(db, 'rooms', roomId);
+                            if (roomData.nextPair === selectedPlayerForAction.id) {
+                              await updateDoc(roomRef, { nextPair: null });
+                            } else {
+                              await updateDoc(roomRef, { nextPair: selectedPlayerForAction.id });
+                            }
+                            setSelectedPlayerForAction(null);
+                          }}
+                          className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 ${
+                            roomData.nextPair === selectedPlayerForAction.id
+                              ? 'bg-purple-600 text-white border-purple-400 shadow-md'
+                              : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-purple-500/60'
+                          }`}
+                        >
+                          <span>💋 2º (Pareja)</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Botón Eliminar Jugador para el Anfitrión */}
+                  {(isHost || canCheat) && (
+                    <div className="pt-2 border-t border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="w-full py-3 px-4 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 hover:text-rose-200 font-bold rounded-2xl text-xs flex items-center justify-center gap-2 transition active:scale-95 shadow-sm"
+                      >
+                        <Trash2 className="w-4 h-4 text-rose-400" />
+                        <span>Eliminar de la Ruleta</span>
+                      </button>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPlayerForAction(null)}
+                    className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-2xl text-xs transition active:scale-95"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}
