@@ -689,7 +689,8 @@ export default function Room({
   // Reemplazar {target} y {actor} en retos
   const formatChallenge = (rawText, actorName, targetName) => {
     if (!rawText) return '';
-    let formatted = rawText.replace(/\{target\}/gi, targetName || 'alguien');
+    let formatted = String(rawText);
+    formatted = formatted.replace(/\{target\}/gi, targetName || 'alguien');
     formatted = formatted.replace(/\{actor\}/gi, actorName || 'Vos');
     return formatted;
   };
@@ -1431,7 +1432,7 @@ export default function Room({
 
           {/* FUEGO RADIAL GIGANTE ENVOLVIENDO LA RULETA (NIVEL 3 y 4) */}
           {currentSpice >= 3 && (roomData.isSpinning || isFireActive) && (
-            <RouletteFireRing isSpinning={roomData.isSpinning} lowSpecsMode={lowSpecsMode} />
+            <RouletteFireRing isSpinning={roomData.isSpinning} lowSpecsMode={!animationsEnabled} />
           )}
 
           {/* Borde exterior giratorio de la ruleta */}
