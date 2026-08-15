@@ -138,148 +138,168 @@ const playVerdadSound = (muted = false) => {
 };
 
 // =========================================================
-// COMPONENTE DE FUEGO EN PANTALLA MEMOIZADO (CERO TITILACIÓN NI RESET AL RE-RENDER)
+// COMPONENTE DE FUEGO EN PANTALLA MEMOIZADO (CON MODO SPECS BAJAS)
 // =========================================================
-const ScreenFireEffect = React.memo(function ScreenFireEffect({ currentSpice, isVisible }) {
+const ScreenFireEffect = React.memo(function ScreenFireEffect({ currentSpice, isVisible, lowSpecsMode = false }) {
   return (
     <AnimatePresence>
       {isVisible && (
-        <motion.div
+        <div
           key="screen-fire-overlay"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.8 }}
           className="fixed inset-0 pointer-events-none z-30 overflow-hidden will-change-transform"
         >
-          {/* CASO 1: 🌶️ NIVEL SUAVE */}
-          {currentSpice === 1 && (
+          {/* MODO SPECS BAJAS / RENDIMIENTO OPTIMIZADO */}
+          {lowSpecsMode ? (
             <>
-              <div className="absolute inset-0 border-2 border-amber-500/40 shadow-[inset_0_0_35px_rgba(245,158,11,0.4)] animate-pulse" />
-              <div className="absolute bottom-0 left-0 right-0 h-28 bg-gradient-to-t from-amber-500/30 via-orange-500/15 to-transparent blur-lg" />
-              <div className="absolute inset-0 flex justify-around">
-                {[...Array(10)].map((_, i) => (
+              {currentSpice === 1 && (
+                <div className="absolute inset-0 border-2 border-amber-500/50 shadow-[inset_0_0_20px_rgba(245,158,11,0.3)] pointer-events-none" />
+              )}
+              {currentSpice === 2 && (
+                <div className="absolute inset-0 border-3 border-rose-500/60 shadow-[inset_0_0_30px_rgba(244,63,94,0.4)] pointer-events-none" />
+              )}
+              {currentSpice >= 3 && (
+                <>
+                  <div className="absolute inset-0 border-4 border-red-500/80 shadow-[inset_0_0_40px_rgba(239,68,68,0.5)] pointer-events-none" />
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-red-600 border border-amber-300 z-40 text-xs font-black uppercase tracking-widest text-white flex items-center gap-1 shadow-md">
+                    <span>💀</span>
+                    <span>¡ESTÁS PRENDIDO FUEGO!</span>
+                    <span>🔥</span>
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              {/* CASO 1: 🌶️ NIVEL SUAVE */}
+              {currentSpice === 1 && (
+                <>
+                  <div className="absolute inset-0 border-2 border-amber-500/40 shadow-[inset_0_0_35px_rgba(245,158,11,0.4)] animate-pulse" />
+                  <div className="absolute bottom-0 left-0 right-0 h-28 bg-gradient-to-t from-amber-500/30 via-orange-500/15 to-transparent blur-lg" />
+                  <div className="absolute inset-0 flex justify-around">
+                    {[...Array(10)].map((_, i) => (
+                      <motion.div
+                        key={`chili-${i}`}
+                        initial={{ y: -50, opacity: 0 }}
+                        animate={{
+                          y: [-30, 750],
+                          x: [0, (i % 2 === 0 ? 25 : -25), (i % 2 === 0 ? -15 : 15)],
+                          rotate: [0, (i % 2 === 0 ? 360 : -360)],
+                          opacity: [0, 1, 1, 0],
+                          scale: [0.7, 1.15, 1, 0.8]
+                        }}
+                        transition={{
+                          repeat: Infinity,
+                          duration: 2.8 + (i * 0.2),
+                          delay: i * 0.18,
+                          ease: "easeIn"
+                        }}
+                        className="text-2xl sm:text-3xl drop-shadow-[0_0_10px_rgba(245,158,11,0.8)] select-none"
+                      >
+                        🌶️
+                      </motion.div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* CASO 2: 🔥 NIVEL CALIENTE */}
+              {currentSpice === 2 && (
+                <>
+                  <div className="absolute inset-0 border-2 border-rose-500/50 shadow-[inset_0_0_45px_rgba(244,63,94,0.5)] animate-pulse" />
+                  <div className="absolute bottom-0 left-0 right-0 h-36 bg-gradient-to-t from-rose-600/50 via-orange-500/30 to-transparent blur-lg" />
+                  <div className="absolute inset-0 flex justify-around items-end">
+                    {[...Array(8)].map((_, i) => (
+                      <motion.div
+                        key={`flame-${i}`}
+                        animate={{
+                          y: [0, -550],
+                          x: [0, (i % 2 === 0 ? 25 : -25), 0],
+                          opacity: [0, 0.9, 0.8, 0],
+                          scale: [0.5, 1.2, 0.8, 0]
+                        }}
+                        transition={{
+                          repeat: Infinity,
+                          duration: 2.2 + (i * 0.25),
+                          delay: i * 0.2,
+                          ease: "easeOut"
+                        }}
+                        className="text-xl sm:text-2xl drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] select-none"
+                      >
+                        🔥
+                      </motion.div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* CASO 3 & 4: 💀🔥 NIVEL FUEGO TOTAL & EXTREMO */}
+              {currentSpice >= 3 && (
+                <>
+                  <div 
+                    className="absolute inset-0 border-4 border-red-500/70 animate-pulse pointer-events-none"
+                    style={{ boxShadow: "inset 0 0 50px rgba(239,68,68,0.8), inset 0 0 100px rgba(249,115,22,0.6)" }}
+                  />
+
                   <motion.div
-                    key={`chili-${i}`}
-                    initial={{ y: -50, opacity: 0 }}
                     animate={{
-                      y: [-30, 750],
-                      x: [0, (i % 2 === 0 ? 25 : -25), (i % 2 === 0 ? -15 : 15)],
-                      rotate: [0, (i % 2 === 0 ? 360 : -360)],
-                      opacity: [0, 1, 1, 0],
-                      scale: [0.7, 1.15, 1, 0.8]
+                      y: [10, -20, 10],
+                      scaleY: [1, 1.15, 1],
+                      opacity: [0.75, 0.95, 0.75]
                     }}
-                    transition={{
-                      repeat: Infinity,
-                      duration: 2.8 + (i * 0.2),
-                      delay: i * 0.18,
-                      ease: "easeIn"
+                    transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                    className="absolute bottom-0 left-0 right-0 h-[65vh] bg-gradient-to-t from-red-600/80 via-orange-500/40 to-transparent blur-xl pointer-events-none"
+                  />
+
+                  <motion.div
+                    animate={{
+                      y: [0, -25, 0],
+                      opacity: [0.7, 0.95, 0.7]
                     }}
-                    className="text-2xl sm:text-3xl drop-shadow-[0_0_10px_rgba(245,158,11,0.8)] select-none"
+                    transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut", delay: 0.2 }}
+                    className="absolute bottom-0 left-0 right-0 h-[45vh] bg-gradient-to-t from-amber-500/80 via-rose-600/60 to-transparent blur-lg pointer-events-none"
+                  />
+
+                  <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-red-600/50 via-orange-500/25 to-transparent blur-lg pointer-events-none" />
+                  <div className="absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-red-600/50 via-orange-500/25 to-transparent blur-lg pointer-events-none" />
+
+                  <div className="absolute inset-0 flex justify-around items-end overflow-hidden pointer-events-none">
+                    {[...Array(9)].map((_, i) => (
+                      <motion.div
+                        key={`skull-fire-${i}`}
+                        animate={{
+                          y: [30, -650],
+                          x: [0, (i % 2 === 0 ? 25 : -25), 0],
+                          rotate: [0, (i % 2 === 0 ? 20 : -20), 0],
+                          opacity: [0, 1, 0.9, 0],
+                          scale: [0.6, 1.3, 1, 0.4]
+                        }}
+                        transition={{
+                          repeat: Infinity,
+                          duration: 2.3 + (i * 0.22),
+                          delay: i * 0.18,
+                          ease: "easeOut"
+                        }}
+                        className="text-2xl sm:text-4xl drop-shadow-[0_0_16px_rgba(239,68,68,0.9)] select-none"
+                      >
+                        {i % 3 === 0 ? '💀' : i % 3 === 1 ? '🔥' : '💥'}
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  <motion.div
+                    animate={{ scale: [1, 1.04, 1], opacity: [0.9, 1, 0.9] }}
+                    transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
+                    className="absolute top-6 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-gradient-to-r from-red-600 via-orange-500 to-red-600 border-2 border-amber-300 shadow-[0_0_25px_#ef4444] z-40 text-xs sm:text-sm font-black uppercase tracking-widest text-white flex items-center gap-1.5"
                   >
-                    🌶️
+                    <span>💀</span>
+                    <span>¡ESTÁS PRENDIDO FUEGO!</span>
+                    <span>🔥</span>
                   </motion.div>
-                ))}
-              </div>
+                </>
+              )}
             </>
           )}
-
-          {/* CASO 2: 🔥 NIVEL CALIENTE */}
-          {currentSpice === 2 && (
-            <>
-              <div className="absolute inset-0 border-2 border-rose-500/50 shadow-[inset_0_0_45px_rgba(244,63,94,0.5)] animate-pulse" />
-              <div className="absolute bottom-0 left-0 right-0 h-36 bg-gradient-to-t from-rose-600/50 via-orange-500/30 to-transparent blur-lg" />
-              <div className="absolute inset-0 flex justify-around items-end">
-                {[...Array(8)].map((_, i) => (
-                  <motion.div
-                    key={`flame-${i}`}
-                    animate={{
-                      y: [0, -550],
-                      x: [0, (i % 2 === 0 ? 25 : -25), 0],
-                      opacity: [0, 0.9, 0.8, 0],
-                      scale: [0.5, 1.2, 0.8, 0]
-                    }}
-                    transition={{
-                      repeat: Infinity,
-                      duration: 2.2 + (i * 0.25),
-                      delay: i * 0.2,
-                      ease: "easeOut"
-                    }}
-                    className="text-xl sm:text-2xl drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] select-none"
-                  >
-                    🔥
-                  </motion.div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* CASO 3 & 4: 💀🔥 NIVEL FUEGO TOTAL & EXTREMO */}
-          {currentSpice >= 3 && (
-            <>
-              <div 
-                className="absolute inset-0 border-4 border-red-500/70 animate-pulse pointer-events-none"
-                style={{ boxShadow: "inset 0 0 50px rgba(239,68,68,0.8), inset 0 0 100px rgba(249,115,22,0.6)" }}
-              />
-
-              <motion.div
-                animate={{
-                  y: [10, -20, 10],
-                  scaleY: [1, 1.15, 1],
-                  opacity: [0.75, 0.95, 0.75]
-                }}
-                transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                className="absolute bottom-0 left-0 right-0 h-[65vh] bg-gradient-to-t from-red-600/80 via-orange-500/40 to-transparent blur-xl pointer-events-none"
-              />
-
-              <motion.div
-                animate={{
-                  y: [0, -25, 0],
-                  opacity: [0.7, 0.95, 0.7]
-                }}
-                transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut", delay: 0.2 }}
-                className="absolute bottom-0 left-0 right-0 h-[45vh] bg-gradient-to-t from-amber-500/80 via-rose-600/60 to-transparent blur-lg pointer-events-none"
-              />
-
-              <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-red-600/50 via-orange-500/25 to-transparent blur-lg pointer-events-none" />
-              <div className="absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-red-600/50 via-orange-500/25 to-transparent blur-lg pointer-events-none" />
-
-              <div className="absolute inset-0 flex justify-around items-end overflow-hidden pointer-events-none">
-                {[...Array(9)].map((_, i) => (
-                  <motion.div
-                    key={`skull-fire-${i}`}
-                    animate={{
-                      y: [30, -650],
-                      x: [0, (i % 2 === 0 ? 25 : -25), 0],
-                      rotate: [0, (i % 2 === 0 ? 20 : -20), 0],
-                      opacity: [0, 1, 0.9, 0],
-                      scale: [0.6, 1.3, 1, 0.4]
-                    }}
-                    transition={{
-                      repeat: Infinity,
-                      duration: 2.3 + (i * 0.22),
-                      delay: i * 0.18,
-                      ease: "easeOut"
-                    }}
-                    className="text-2xl sm:text-4xl drop-shadow-[0_0_16px_rgba(239,68,68,0.9)] select-none"
-                  >
-                    {i % 3 === 0 ? '💀' : i % 3 === 1 ? '🔥' : '💥'}
-                  </motion.div>
-                ))}
-              </div>
-
-              <motion.div
-                animate={{ scale: [1, 1.04, 1], opacity: [0.9, 1, 0.9] }}
-                transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
-                className="absolute top-6 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-gradient-to-r from-red-600 via-orange-500 to-red-600 border-2 border-amber-300 shadow-[0_0_25px_#ef4444] z-40 text-xs sm:text-sm font-black uppercase tracking-widest text-white flex items-center gap-1.5"
-              >
-                <span>💀</span>
-                <span>¡ESTÁS PRENDIDO FUEGO!</span>
-                <span>🔥</span>
-              </motion.div>
-            </>
-          )}
-        </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );
@@ -288,7 +308,13 @@ const ScreenFireEffect = React.memo(function ScreenFireEffect({ currentSpice, is
 // =========================================================
 // ANILLO DE FUEGO DE LA RULETA MEMOIZADO (GIRO CONTINUO 60FPS)
 // =========================================================
-const RouletteFireRing = React.memo(function RouletteFireRing({ isSpinning }) {
+const RouletteFireRing = React.memo(function RouletteFireRing({ isSpinning, lowSpecsMode = false }) {
+  if (lowSpecsMode) {
+    return (
+      <div className="absolute -inset-2 rounded-full border-2 border-amber-500/60 shadow-[0_0_15px_rgba(245,158,11,0.5)] pointer-events-none" />
+    );
+  }
+
   return (
     <>
       <div className="absolute -inset-4 sm:-inset-6 rounded-full bg-gradient-to-tr from-red-600 via-orange-500 to-amber-300 blur-xl opacity-80 pointer-events-none animate-pulse" />
@@ -458,6 +484,25 @@ export default function Room({
         // Sonido de confirmación al activar audio
         playTone(587.33, 0.12, 'sine', 0, 0.15);
       }
+      return next;
+    });
+  };
+
+  // Modo Rendimiento / Animaciones Reducidas para teléfonos lentos / bajo rendimiento
+  const [lowSpecsMode, setLowSpecsMode] = useState(() => {
+    try {
+      return localStorage.getItem('onfire_low_specs') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleLowSpecs = () => {
+    setLowSpecsMode((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('onfire_low_specs', next.toString());
+      } catch {}
       return next;
     });
   };
@@ -934,6 +979,7 @@ export default function Room({
       <ScreenFireEffect 
         currentSpice={currentSpice}
         isVisible={(isMeActor || isMeTarget) && !!roomData?.currentResult && !roomData?.isSpinning && isFireActive}
+        lowSpecsMode={lowSpecsMode}
       />
 
       {/* ========================================================== */}
@@ -1074,16 +1120,22 @@ export default function Room({
             {isFullscreen ? <Minimize className="w-4 h-4 text-amber-400" /> : <Maximize className="w-4 h-4" />}
           </button>
 
-          {/* Botón Instalar App (PWA) */}
-          {!isInstalled && onInstallApp && (
-            <button
-              onClick={onInstallApp}
-              className="p-1.5 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 rounded-xl text-white transition shadow-sm flex items-center justify-center"
-              title="Instalar OnFire en tu celular"
-            >
-              <Download className="w-4 h-4" />
-            </button>
-          )}
+          {/* Botón Modo Rendimiento / Animaciones Reducidas (para celulares de bajo rendimiento) */}
+          <button
+            onClick={handleToggleLowSpecs}
+            className={`p-1.5 rounded-xl text-xs transition shadow-sm flex items-center justify-center border ${
+              lowSpecsMode
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/60 shadow-[0_0_10px_rgba(245,158,11,0.4)]'
+                : 'bg-slate-900/90 text-slate-400 hover:text-white border-slate-700/70 hover:border-slate-500'
+            }`}
+            title={
+              lowSpecsMode
+                ? "Modo Rendimiento ACTIVO (Animaciones reducidas para teléfonos lentos)"
+                : "Modo Rendimiento DESACTIVADO (Tocá para reducir animaciones y acelerar la app)"
+            }
+          >
+            <Zap className={`w-4 h-4 ${lowSpecsMode ? 'fill-amber-400 text-amber-400' : ''}`} />
+          </button>
         </div>
 
         {isHost || canCheat ? (
@@ -1270,7 +1322,7 @@ export default function Room({
           {/* FUEGO RADIAL GIGANTE ENVOLVIENDO LA RULETA (NIVEL 3 y 4)   */}
           {/* ========================================================= */}
           {currentSpice >= 3 && (roomData.isSpinning || isFireActive) && (
-            <RouletteFireRing isSpinning={roomData.isSpinning} />
+            <RouletteFireRing isSpinning={roomData.isSpinning} lowSpecsMode={lowSpecsMode} />
           )}
 
           {/* Borde exterior giratorio de la ruleta */}
@@ -2037,6 +2089,22 @@ export default function Room({
                     <br />
                     3. Tocá <strong>+ Reto</strong> para elegir o redactar el reto exacto que saldrá.
                   </p>
+                </div>
+              )}
+
+              {/* Botón Instalar App (PWA) dentro de Ajustes */}
+              {!isInstalled && onInstallApp && (
+                <div className="pt-2 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onInstallApp();
+                      setShowAdminPanel(false);
+                    }}
+                    className="w-full py-2.5 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-md active:scale-95"
+                  >
+                    <Download className="w-4 h-4" /> Instalar OnFire en tu Celular (App PWA)
+                  </button>
                 </div>
               )}
 
