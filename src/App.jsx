@@ -106,6 +106,56 @@ export default function App() {
     };
   }, []);
 
+  // Estado para la tarjeta de reconexión rápida a la última sala
+  const [reconnectPrompt, setReconnectPrompt] = useState(null);
+
+  // Detectar sesión previa abierta al iniciar la app
+  useEffect(() => {
+    const checkLastSession = async () => {
+      const saved = localStorage.getItem('onfire_active_session');
+      if (!saved) return;
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.roomCode && (Date.now() - (parsed.timestamp || 0) < 24 * 60 * 60 * 1000)) {
+          const roomSnap = await getDoc(doc(db, 'rooms', parsed.roomCode));
+          if (roomSnap.exists()) {
+            const rData = roomSnap.data();
+            const hostPlayer = (rData.players || []).find(p => p.id === rData.hostId);
+            const actualHostName = hostPlayer ? hostPlayer.name : parsed.hostName || 'el Creador';
+            setReconnectPrompt({
+              ...parsed,
+              hostName: actualHostName
+            });
+          } else {
+            localStorage.removeItem('onfire_active_session');
+          }
+        } else {
+          localStorage.removeItem('onfire_active_session');
+        }
+      } catch (err) {
+        localStorage.removeItem('onfire_active_session');
+      }
+    };
+
+    checkLastSession();
+  }, []);
+
+  const handleAcceptReconnect = () => {
+    if (!reconnectPrompt) return;
+    setRoomCodeInput(reconnectPrompt.roomCode);
+    setDisplayName(reconnectPrompt.playerName);
+    setRawInputName(reconnectPrompt.rawName || reconnectPrompt.playerName);
+    setIsHost(reconnectPrompt.isHost);
+    setCanCheat(reconnectPrompt.canCheat);
+    setCurrentRoom(reconnectPrompt.roomCode);
+    setReconnectPrompt(null);
+  };
+
+  const handleDismissReconnect = () => {
+    localStorage.removeItem('onfire_active_session');
+    setReconnectPrompt(null);
+  };
+
   // Detectar código de sala por URL (al escanear código QR)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -207,6 +257,17 @@ export default function App() {
       };
 
       await setDoc(roomRef, initialData);
+      
+      localStorage.setItem('onfire_active_session', JSON.stringify({
+        roomCode: newRoomCode,
+        rawName: rawInputName,
+        playerName: cleanName,
+        hostName: cleanName,
+        isHost: true,
+        canCheat: isSecret,
+        timestamp: Date.now()
+      }));
+
       setCurrentRoom(newRoomCode);
       setIsHost(true);
       setCanCheat(isSecret);
@@ -281,7 +342,7 @@ export default function App() {
       const roomSnap = await getDoc(roomRef);
 
       if (!roomSnap.exists()) {
-        setErrorMsg('La sala ya no existe.');
+        setErrorMsg('La sala no existe.');
         setLoading(false);
         return;
       }
@@ -337,6 +398,18 @@ export default function App() {
 
       await updateDoc(roomRef, { players: updatedPlayers });
 
+      const hostPlayer = (data.players || []).find(p => p.id === data.hostId);
+      const hostName = hostPlayer ? hostPlayer.name : 'el Creador';
+      localStorage.setItem('onfire_active_session', JSON.stringify({
+        roomCode: code,
+        rawName: finalRawName,
+        playerName: cleanName,
+        hostName: hostName,
+        isHost: data.hostId === playerId,
+        canCheat: isSecret,
+        timestamp: Date.now()
+      }));
+
       setCurrentRoom(code);
       setIsHost(data.hostId === playerId);
       setCanCheat(isSecret);
@@ -349,6 +422,8 @@ export default function App() {
   };
 
   const handleLeaveRoom = () => {
+    localStorage.removeItem('onfire_active_session');
+    setReconnectPrompt(null);
     setCurrentRoom(null);
     setIsHost(false);
     setCanCheat(false);
@@ -493,6 +568,55 @@ export default function App() {
             Juego de Ruleta y +500 Retos Picantes en Vivo
           </p>
         </div>
+
+        {/* ========================================================== */}
+        {/* TARJETA DE RECONEXIÓN A SALA ANTERIOR                     */}
+        {/* ========================================================== */}
+        <AnimatePresence>
+          {reconnectPrompt && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: -15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: -10 }}
+              className="w-full mb-5 p-5 bg-gradient-to-br from-rose-950/90 via-slate-900 to-purple-950/90 border-2 border-rose-500/70 rounded-3xl shadow-[0_0_35px_rgba(244,63,94,0.35)] backdrop-blur-xl relative overflow-hidden"
+            >
+              <div className="flex items-center gap-3.5 mb-3">
+                <div className="p-3 bg-rose-500/20 border border-rose-500/50 rounded-2xl text-rose-400 flex-shrink-0">
+                  <Flame className="w-6 h-6 fill-rose-500 animate-pulse" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-amber-300">
+                    ⚡ Sesión previa abierta
+                  </span>
+                  <h3 className="text-base sm:text-lg font-black text-white leading-tight mt-0.5">
+                    ¿Reconectarte a la sala de <span className="text-rose-400 font-extrabold underline">{reconnectPrompt.hostName}</span>?
+                  </h3>
+                  <p className="text-xs text-slate-300 mt-1">
+                    Sala: <strong className="font-mono text-pink-300">{reconnectPrompt.roomCode}</strong> · Entrar como <strong className="text-white">{reconnectPrompt.playerName}</strong>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-2.5 mt-4">
+                <button
+                  type="button"
+                  onClick={handleAcceptReconnect}
+                  className="flex-1 py-3 bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 hover:from-rose-700 hover:to-purple-700 text-white text-xs sm:text-sm font-black rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2"
+                >
+                  <Zap className="w-4 h-4 fill-white" />
+                  Sí, volver a entrar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDismissReconnect}
+                  className="px-4 py-3 bg-slate-800/90 hover:bg-slate-800 text-slate-300 text-xs sm:text-sm font-bold rounded-xl border border-slate-700/60 transition active:scale-95"
+                >
+                  Descartar
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* TARJETA PRINCIPAL CON PADDING Y TAMAÑO GENEROSO */}
         <div className="glass-panel p-6 sm:p-8 rounded-3xl shadow-2xl border border-slate-800/90 backdrop-blur-xl">
