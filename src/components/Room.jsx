@@ -1709,19 +1709,33 @@ export default function Room({
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
-                className={`w-full glass-card p-3 sm:p-4 rounded-2xl mb-1 text-center border-2 shadow-2xl flex-shrink-0 max-h-36 sm:max-h-44 overflow-y-auto ${
+                className={`w-full glass-card p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl mb-1 text-center border-2 shadow-2xl flex-shrink-0 max-h-48 sm:max-h-56 overflow-y-auto ${
                   currentChallenge.tipo === 'reto'
                     ? 'border-rose-500/60 shadow-[0_0_30px_rgba(244,63,94,0.35)] bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-rose-950/60'
                     : 'border-fuchsia-500/60 shadow-[0_0_30px_rgba(217,70,239,0.35)] bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-purple-950/60'
                 }`}
               >
-                <div className="flex items-center justify-center gap-2 mb-1">
-                  <span className="px-3 py-0.5 rounded-full text-xs font-black bg-slate-800 border border-slate-700 text-slate-200 uppercase">
-                    {currentSpice === 1 ? '🌶️ Suave' : currentSpice === 2 ? '🔥 Caliente' : currentSpice === 3 ? '💀 Fuego' : '💀🔥 Extremo'}
-                  </span>
+                {/* Indicador Quién a Quién */}
+                <div className="flex items-center justify-center gap-2 mb-1.5">
+                  {roomData.currentPair ? (
+                    <span className="px-3.5 py-1 rounded-full text-xs sm:text-sm font-black bg-gradient-to-r from-rose-500/25 via-purple-500/25 to-pink-500/25 border border-rose-500/40 text-rose-200 shadow-sm flex items-center gap-1.5">
+                      <span className="text-white font-extrabold">{roomData.currentResult?.name}</span>
+                      <span className="text-amber-400 font-black">➜</span>
+                      <span className="text-pink-300 font-extrabold">{roomData.currentPair?.name}</span>
+                    </span>
+                  ) : (
+                    <span className="px-3.5 py-1 rounded-full text-xs sm:text-sm font-black bg-gradient-to-r from-rose-500/25 via-purple-500/25 to-pink-500/25 border border-rose-500/40 text-rose-200 shadow-sm flex items-center gap-1.5">
+                      <span className="text-white font-extrabold">{roomData.currentResult?.name || 'A Jugar'}</span>
+                      {currentChallenge?.tipo && (
+                        <span className="text-[10px] uppercase font-bold text-slate-300 tracking-wider">
+                          ({currentChallenge.tipo})
+                        </span>
+                      )}
+                    </span>
+                  )}
                 </div>
 
-                <p className="text-base sm:text-xl md:text-2xl font-extrabold text-white font-fun tracking-wide leading-tight sm:leading-snug drop-shadow-md px-1 my-1">
+                <p className="text-lg sm:text-2xl md:text-3xl font-black text-white font-fun tracking-wide leading-snug sm:leading-normal drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] px-2 my-1.5 sm:my-2">
                   "{currentChallenge.texto}"
                 </p>
 
