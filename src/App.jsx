@@ -13,7 +13,8 @@ import {
   X, 
   ArrowRight,
   CheckCircle2,
-  UserCheck
+  UserCheck,
+  QrCode
 } from 'lucide-react';
 
 // Generador de ID único persistente en LocalStorage
@@ -45,6 +46,19 @@ export default function App() {
   const [availableSlots, setAvailableSlots] = useState([]);
   const [stepJoin, setStepJoin] = useState('input_code'); // 'input_code' | 'choose_name'
   const [roomDataCache, setRoomDataCache] = useState(null);
+
+  // Detectar código de sala por URL (al escanear código QR)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomFromUrl = urlParams.get('room') || urlParams.get('sala') || (window.location.hash.startsWith('#room=') ? window.location.hash.replace('#room=', '') : '');
+    
+    if (roomFromUrl && roomFromUrl.trim().length >= 4) {
+      const code = roomFromUrl.trim().toUpperCase();
+      setRoomCodeInput(code);
+      // Cargar la sala automáticamente
+      checkRoomByCode(code);
+    }
+  }, []);
 
   // Detectar si el nombre tiene la palabra clave secreta "Papito"
   const processName = (input) => {
@@ -146,10 +160,9 @@ export default function App() {
     }
   };
 
-  // 2. BUSCAR SALA PARA UNIRSE (SIEMPRE PREGUNTAR QUIÉN SOS)
-  const handleCheckRoom = async (e) => {
-    e.preventDefault();
-    const code = roomCodeInput.trim().toUpperCase();
+  // Función reutilizable para consultar sala
+  const checkRoomByCode = async (codeToSearch) => {
+    const code = codeToSearch.trim().toUpperCase();
     if (!code) {
       setErrorMsg('Ingresá el código de 5 letras de la sala.');
       return;
@@ -171,7 +184,6 @@ export default function App() {
       const data = roomSnap.data();
       setRoomDataCache(data);
 
-      // SIEMPRE mostrar la pantalla de selección de nombre para que elija quién es
       const unclaimed = data.players?.filter(p => !p.isClaimed) || [];
       setAvailableSlots(unclaimed);
       setStepJoin('choose_name');
@@ -181,6 +193,12 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 2. BUSCAR SALA PARA UNIRSE
+  const handleCheckRoom = async (e) => {
+    e.preventDefault();
+    await checkRoomByCode(roomCodeInput);
   };
 
   // 3. ELEGIR NOMBRE DISPONIBLE O INGRESAR UNO NUEVO
@@ -214,7 +232,6 @@ export default function App() {
       const data = roomSnap.data();
       let updatedPlayers = [...(data.players || [])];
 
-      // Si seleccionó un nombre de la lista disponible
       if (selectedSlotName) {
         const slotIndex = updatedPlayers.findIndex(p => p.name === selectedSlotName && !p.isClaimed);
         if (slotIndex !== -1) {
@@ -235,7 +252,6 @@ export default function App() {
           });
         }
       } else {
-        // Escribió su propio nombre
         updatedPlayers.push({
           id: playerId,
           name: cleanName,
@@ -263,6 +279,11 @@ export default function App() {
     setIsHost(false);
     setCanCheat(false);
     setStepJoin('input_code');
+    // Limpiar url param si estaba puesto
+    if (window.history.pushState) {
+      const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    }
   };
 
   if (currentRoom) {

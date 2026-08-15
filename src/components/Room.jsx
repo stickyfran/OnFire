@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { motion, AnimatePresence } from 'framer-motion';
+import { QRCodeSVG } from 'qrcode.react';
 import { 
   Flame, 
   Users, 
@@ -17,15 +18,15 @@ import {
   X, 
   EyeOff, 
   Plus, 
-  UserCheck,
-  TrendingUp,
-  Trash2,
-  FileText,
-  Search,
-  PenTool,
-  Eye,
-  Lock,
-  FlameKindling
+  UserCheck, 
+  TrendingUp, 
+  Trash2, 
+  FileText, 
+  Search, 
+  PenTool, 
+  Eye, 
+  QrCode, 
+  Share2 
 } from 'lucide-react';
 
 // Generador de audio sintetizado Web Audio API
@@ -64,7 +65,9 @@ const playVerdadSound = () => {
 export default function Room({ roomId, playerId, playerName, isHost, canCheat, onLeave }) {
   const [roomData, setRoomData] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
   const [displayIndex, setDisplayIndex] = useState(0);
   const [newPlayerModal, setNewPlayerModal] = useState(false);
   const [extraPlayerName, setExtraPlayerName] = useState('');
@@ -85,6 +88,9 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
   const [activeTabModal, setActiveTabModal] = useState('custom'); // 'custom' | 'search'
 
   const spinInterval = useRef(null);
+
+  // URL para compartir la sala por QR o enlace directo
+  const shareUrl = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
 
   // Sincronización en tiempo real con Firestore
   useEffect(() => {
@@ -130,7 +136,6 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
         lastRevealedChallengeId.current = challengeId;
         const tipo = roomData.currentChallenge.tipo?.toLowerCase() || 'reto';
         
-        // Disparar super splash
         setSplashReveal(tipo);
         if (tipo === 'reto') {
           playRetoSound();
@@ -346,6 +351,28 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(shareUrl);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Unite a mi sala en OnFire 🔥',
+          text: `Entrá a la previa en OnFire con el código de sala ${roomId}`,
+          url: shareUrl
+        });
+      } catch (err) {
+        handleCopyLink();
+      }
+    } else {
+      handleCopyLink();
+    }
+  };
+
   const handleExportChallenges = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(roomData.challenges || [], null, 2));
     const downloadAnchor = document.createElement('a');
@@ -496,7 +523,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
         )}
       </AnimatePresence>
 
-      {/* Header */}
+      {/* Header con BOTÓN DE SALA Y BOTÓN DE QR */}
       <header className="w-full max-w-lg flex items-center justify-between pt-2 pb-3 z-10 border-b border-slate-800/80">
         <button
           onClick={onLeave}
@@ -506,13 +533,23 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
           <LogOut className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          {/* Botón Código de Sala */}
           <button
             onClick={handleCopyCode}
-            className="flex items-center gap-2 px-3.5 py-1.5 bg-slate-900/90 border border-rose-500/30 rounded-xl text-xs font-mono font-bold tracking-widest text-rose-300 hover:border-rose-500 transition"
+            className="flex items-center gap-2 px-3.5 py-1.5 bg-slate-900/90 border border-rose-500/30 rounded-xl text-xs font-mono font-bold tracking-widest text-rose-300 hover:border-rose-500 transition shadow-sm"
           >
             <span>SALA: {roomId}</span>
             {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+          </button>
+
+          {/* Botón QR para escanear y entrar de una */}
+          <button
+            onClick={() => setShowQRModal(true)}
+            className="p-2 bg-slate-900/90 border border-rose-500/40 hover:border-rose-400 rounded-xl text-rose-400 hover:text-white transition shadow-sm flex items-center justify-center"
+            title="Mostrar código QR de la sala"
+          >
+            <QrCode className="w-4 h-4" />
           </button>
         </div>
 
@@ -881,7 +918,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
                 </div>
 
                 <div className="flex items-center gap-1">
-                  {/* Badges de trampa (Solo si Papito tiene superpoderes visibles) */}
+                  {/* Badges de trampa */}
                   {isCheatActiveVisual && (
                     <>
                       {isTarget1 && (
@@ -897,7 +934,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
                     </>
                   )}
 
-                  {/* Botón eliminar jugador (Host o Papito) */}
+                  {/* Botón eliminar jugador */}
                   {(isHost || canCheat) && (
                     <button
                       type="button"
@@ -917,6 +954,80 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
           })}
         </div>
       </footer>
+
+      {/* ========================================================== */}
+      {/* MODAL QR CODE DE LA SALA PARA ESCANEAR CON EL CELULAR      */}
+      {/* ========================================================== */}
+      <AnimatePresence>
+        {showQRModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 15 }}
+              className="bg-slate-900 border border-slate-800 p-6 rounded-3xl w-full max-w-sm shadow-2xl space-y-4 text-center flex flex-col items-center relative overflow-hidden"
+            >
+              <div className="absolute -top-16 -right-16 w-36 h-36 bg-rose-600/20 rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-purple-600/20 rounded-full blur-2xl pointer-events-none" />
+
+              <div className="w-full flex items-center justify-between border-b border-slate-800 pb-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <QrCode className="w-4 h-4 text-rose-500" /> Escanear Sala
+                </span>
+                <button
+                  onClick={() => setShowQRModal(false)}
+                  className="text-slate-400 hover:text-white text-sm p-1"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Código QR Generado */}
+              <div className="p-4 bg-white rounded-2xl shadow-[0_0_30px_rgba(244,63,94,0.3)] my-1 border-4 border-rose-500/40">
+                <QRCodeSVG
+                  value={shareUrl}
+                  size={200}
+                  level="Q"
+                  includeMargin={false}
+                />
+              </div>
+
+              {/* Información de Sala */}
+              <div>
+                <span className="text-xs text-slate-400">Código de Sala:</span>
+                <h2 className="text-3xl font-mono font-black tracking-widest text-rose-400">
+                  {roomId}
+                </h2>
+                <p className="text-[11px] text-slate-400 mt-1 max-w-[240px]">
+                  Apuntá con la cámara de tu celular para entrar a la sala al instante sin escribir el código.
+                </p>
+              </div>
+
+              {/* Botones de acción */}
+              <div className="w-full flex gap-2 pt-2">
+                <button
+                  onClick={handleShare}
+                  className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-md"
+                >
+                  <Share2 className="w-3.5 h-3.5" /> Compartir Link
+                </button>
+                <button
+                  onClick={handleCopyLink}
+                  className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 transition border border-slate-700"
+                >
+                  {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedLink ? 'Copiado!' : 'Copiar URL'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* MODAL PARA FIJAR RETO O VERDAD TRAMPA (Exclusivo Papito) */}
       <AnimatePresence>
