@@ -42,8 +42,8 @@ export default function App() {
   const [precreatedNames, setPrecreatedNames] = useState([]);
   const [newPreName, setNewPreName] = useState('');
 
-  // Estado al unirse
-  const [availableSlots, setAvailableSlots] = useState([]);
+  // Lista de todos los jugadores de la sala para elegir en 1 toque
+  const [allRoomPlayers, setAllRoomPlayers] = useState([]);
   const [stepJoin, setStepJoin] = useState('input_code'); // 'input_code' | 'choose_name'
   const [roomDataCache, setRoomDataCache] = useState(null);
 
@@ -55,7 +55,6 @@ export default function App() {
     if (roomFromUrl && roomFromUrl.trim().length >= 4) {
       const code = roomFromUrl.trim().toUpperCase();
       setRoomCodeInput(code);
-      // Cargar la sala automáticamente
       checkRoomByCode(code);
     }
   }, []);
@@ -184,8 +183,8 @@ export default function App() {
       const data = roomSnap.data();
       setRoomDataCache(data);
 
-      const unclaimed = data.players?.filter(p => !p.isClaimed) || [];
-      setAvailableSlots(unclaimed);
+      // Mostrar todos los jugadores registrados o precargados en la sala
+      setAllRoomPlayers(data.players || []);
       setStepJoin('choose_name');
     } catch (err) {
       console.error(err);
@@ -201,7 +200,7 @@ export default function App() {
     await checkRoomByCode(roomCodeInput);
   };
 
-  // 3. ELEGIR NOMBRE DISPONIBLE O INGRESAR UNO NUEVO
+  // 3. ELEGIR NOMBRE O INGRESAR UNO NUEVO (PERMITIR UNIRSE SIEMPRE SIN BLOQUEOS)
   const handleClaimOrJoin = async (selectedSlotName = null) => {
     const finalRawName = selectedSlotName || rawInputName.trim();
 
@@ -232,9 +231,15 @@ export default function App() {
       const data = roomSnap.data();
       let updatedPlayers = [...(data.players || [])];
 
+      // Si tocó un nombre de la lista existente
       if (selectedSlotName) {
-        const slotIndex = updatedPlayers.findIndex(p => p.name === selectedSlotName && !p.isClaimed);
+        // Buscar el jugador por nombre (aunque ya estuviera tomado)
+        const slotIndex = updatedPlayers.findIndex(
+          p => p.name.trim().toLowerCase() === selectedSlotName.trim().toLowerCase()
+        );
+
         if (slotIndex !== -1) {
+          // Reclamar/re-asociar este jugador con el dispositivo actual
           updatedPlayers[slotIndex] = {
             ...updatedPlayers[slotIndex],
             id: playerId,
@@ -252,13 +257,29 @@ export default function App() {
           });
         }
       } else {
-        updatedPlayers.push({
-          id: playerId,
-          name: cleanName,
-          isClaimed: true,
-          claimedBy: playerId,
-          joinedAt: new Date().toISOString()
-        });
+        // Escribió su propio nombre
+        // Si coincide con uno existente, re-asociarlo; si no, sumarlo como nuevo
+        const existingIndex = updatedPlayers.findIndex(
+          p => p.name.trim().toLowerCase() === cleanName.trim().toLowerCase()
+        );
+
+        if (existingIndex !== -1) {
+          updatedPlayers[existingIndex] = {
+            ...updatedPlayers[existingIndex],
+            id: playerId,
+            isClaimed: true,
+            claimedBy: playerId,
+            joinedAt: new Date().toISOString()
+          };
+        } else {
+          updatedPlayers.push({
+            id: playerId,
+            name: cleanName,
+            isClaimed: true,
+            claimedBy: playerId,
+            joinedAt: new Date().toISOString()
+          });
+        }
       }
 
       await updateDoc(roomRef, { players: updatedPlayers });
@@ -279,7 +300,6 @@ export default function App() {
     setIsHost(false);
     setCanCheat(false);
     setStepJoin('input_code');
-    // Limpiar url param si estaba puesto
     if (window.history.pushState) {
       const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
       window.history.pushState({ path: newUrl }, '', newUrl);
@@ -445,7 +465,7 @@ export default function App() {
               </div>
             </div>
           ) : (
-            /* VISTA 2: SIEMPRE PREGUNTAR QUIÉN SOS */
+            /* VISTA 2: ELECCIÓN DE NOMBRE SIN BLOQUEOS */
             <div className="space-y-5 animate-in fade-in duration-200">
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div>
@@ -462,35 +482,31 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Nombres disponibles precargados (1 toque) */}
-              {availableSlots.length > 0 ? (
+              {/* Lista de nombres en la sala (1 toque para entrar) */}
+              {allRoomPlayers.length > 0 && (
                 <div>
                   <label className="block text-xs font-semibold text-pink-400 uppercase tracking-wider mb-2">
-                    Elegí tu nombre disponible (1 toque):
+                    Elegí tu nombre en la sala (1 toque):
                   </label>
                   <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
-                    {availableSlots.map((slot) => (
+                    {allRoomPlayers.map((player) => (
                       <button
-                        key={slot.id}
-                        onClick={() => handleClaimOrJoin(slot.name)}
-                        className="p-3 bg-gradient-to-r from-purple-900/40 to-slate-900 border border-purple-500/40 hover:border-pink-500 rounded-xl text-sm font-bold text-purple-200 hover:text-white transition flex items-center justify-between group shadow-sm active:scale-95"
+                        key={player.id}
+                        onClick={() => handleClaimOrJoin(player.name)}
+                        className="p-3 bg-gradient-to-r from-purple-900/40 to-slate-900 border border-purple-500/40 hover:border-pink-500 rounded-xl text-sm font-bold text-purple-200 hover:text-white transition flex items-center justify-between group shadow-sm active:scale-95 text-left"
                       >
-                        <span className="truncate">{slot.name}</span>
-                        <CheckCircle2 className="w-4 h-4 text-pink-400 opacity-60 group-hover:opacity-100" />
+                        <span className="truncate">{player.name}</span>
+                        <CheckCircle2 className="w-4 h-4 text-pink-400 opacity-60 group-hover:opacity-100 flex-shrink-0 ml-1" />
                       </button>
                     ))}
                   </div>
                 </div>
-              ) : (
-                <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 text-xs text-slate-400 text-center">
-                  Todos los nombres precargados ya fueron tomados. Escribí tu nombre abajo:
-                </div>
               )}
 
-              {/* Escribir nombre manual */}
+              {/* Escribir nombre manual (Permite entrar siempre) */}
               <div className="pt-2 border-t border-slate-800/80">
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  O escribí tu nombre acá:
+                  {allRoomPlayers.length > 0 ? 'O escribí otro nombre acá:' : 'Escribí tu nombre acá:'}
                 </label>
                 <div className="flex gap-2">
                   <input
