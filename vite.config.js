@@ -1,9 +1,14 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import pkg from './package.json'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(`v${pkg.version}`),
+    __BUILD_TIMESTAMP__: JSON.stringify(Date.now())
+  },
   plugins: [
     react(),
     VitePWA({
@@ -41,7 +46,11 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        navigateFallbackDenylist: [/version\.json/]
       }
     })
   ],
@@ -50,3 +59,4 @@ export default defineConfig({
     outDir: 'dist'
   }
 })
+

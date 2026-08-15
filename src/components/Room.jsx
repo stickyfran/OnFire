@@ -62,7 +62,7 @@ const playVerdadSound = () => {
   setTimeout(() => playTone(880.00, 0.4, 'sine'), 200);
 };
 
-export default function Room({ roomId, playerId, playerName, isHost, canCheat, onLeave }) {
+export default function Room({ roomId, playerId, playerName, isHost, canCheat, onLeave, appVersion = 'v1.00' }) {
   const [roomData, setRoomData] = useState(null);
   const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -1330,6 +1330,13 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
               </div>
             );
           })}
+        </div>
+
+        {/* Versión activa */}
+        <div className="flex justify-center mt-2">
+          <span className="px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-mono text-slate-500">
+            {appVersion}
+          </span>
         </div>
       </footer>
 

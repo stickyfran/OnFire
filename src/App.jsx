@@ -29,6 +29,8 @@ const getOrCreatePlayerId = () => {
   return pid;
 };
 
+const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'v1.00';
+
 export default function App() {
   const [playerId] = useState(getOrCreatePlayerId);
   const [rawInputName, setRawInputName] = useState(() => localStorage.getItem('onfire_raw_name') || '');
@@ -39,6 +41,7 @@ export default function App() {
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [updatingVersion, setUpdatingVersion] = useState(null);
 
   // Nombres precargados por el anfitrión
   const [precreatedNames, setPrecreatedNames] = useState([]);
@@ -48,6 +51,60 @@ export default function App() {
   const [allRoomPlayers, setAllRoomPlayers] = useState([]);
   const [stepJoin, setStepJoin] = useState('input_code'); // 'input_code' | 'choose_name'
   const [roomDataCache, setRoomDataCache] = useState(null);
+
+  // Auto-Actualización obligatoria a la última versión
+  useEffect(() => {
+    const checkForUpdates = async () => {
+      try {
+        const res = await fetch(`./version.json?_t=${Date.now()}`, { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.version && data.version !== APP_VERSION) {
+            console.log(`[Version Check] New version detected: ${data.version} (current: ${APP_VERSION})`);
+            setUpdatingVersion(data.version);
+            
+            // Limpiar Service Worker y caché
+            if ('serviceWorker' in navigator) {
+              const registrations = await navigator.serviceWorker.getRegistrations();
+              for (const r of registrations) {
+                await r.unregister();
+              }
+            }
+            if ('caches' in window) {
+              const keys = await caches.keys();
+              await Promise.all(keys.map(k => caches.delete(k)));
+            }
+
+            // Recargar automáticamente para aplicar la última versión
+            setTimeout(() => {
+              window.location.reload(true);
+            }, 1200);
+          }
+        }
+      } catch (err) {
+        // Sin conexión o dev
+      }
+    };
+
+    // Chequear al montar
+    checkForUpdates();
+
+    // Chequear periódicamente cada 20 segundos
+    const interval = setInterval(checkForUpdates, 20000);
+
+    // Chequear al recuperar foco
+    window.addEventListener('focus', checkForUpdates);
+    const handleVisChange = () => {
+      if (document.visibilityState === 'visible') checkForUpdates();
+    };
+    document.addEventListener('visibilitychange', handleVisChange);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', checkForUpdates);
+      document.removeEventListener('visibilitychange', handleVisChange);
+    };
+  }, []);
 
   // Detectar código de sala por URL (al escanear código QR)
   useEffect(() => {
@@ -304,14 +361,37 @@ export default function App() {
 
   if (currentRoom) {
     return (
-      <Room
-        roomId={currentRoom}
-        playerId={playerId}
-        playerName={displayName || rawInputName}
-        isHost={isHost}
-        canCheat={canCheat}
-        onLeave={handleLeaveRoom}
-      />
+      <>
+        {/* OVERLAY DE AUTO-ACTUALIZACIÓN */}
+        <AnimatePresence>
+          {updatingVersion && (
+            <motion.div
+              initial={{ opacity: 0, y: -50 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="fixed top-4 inset-x-4 z-50 max-w-md mx-auto p-4 bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 rounded-2xl shadow-[0_0_30px_rgba(244,63,94,0.8)] border border-white/20 text-white flex items-center justify-between gap-3"
+            >
+              <div className="flex items-center gap-3">
+                <Zap className="w-6 h-6 animate-spin text-amber-300" />
+                <div>
+                  <p className="font-black text-sm">¡Nueva versión {updatingVersion} detectada!</p>
+                  <p className="text-xs text-white/90">Actualizando automáticamente...</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <Room
+          roomId={currentRoom}
+          playerId={playerId}
+          playerName={displayName || rawInputName}
+          isHost={isHost}
+          canCheat={canCheat}
+          onLeave={handleLeaveRoom}
+          appVersion={APP_VERSION}
+        />
+      </>
     );
   }
 
@@ -617,9 +697,12 @@ export default function App() {
           )}
         </div>
 
-        {/* Footer info */}
-        <div className="text-center mt-6 text-xs sm:text-sm text-slate-400 font-medium">
+        {/* Footer info & Versión */}
+        <div className="text-center mt-6 text-xs text-slate-400 font-medium flex flex-col items-center gap-1.5">
           <p>Instalalo como App (PWA) o jugalo en pantalla completa 📱</p>
+          <span className="px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-[11px] font-mono text-slate-400">
+            {APP_VERSION}
+          </span>
         </div>
       </div>
     </div>

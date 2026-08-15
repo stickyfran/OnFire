@@ -1,10 +1,11 @@
 {
   "name": "onfire",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.00",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/bump-version.js",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
