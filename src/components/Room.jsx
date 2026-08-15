@@ -32,40 +32,108 @@ import {
   Smartphone,
   Clock,
   Timer,
-  RefreshCw
+  RefreshCw,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 
-// Generador de audio sintetizado Web Audio API
-const playTone = (freq, duration = 0.1, type = 'sine') => {
+// =========================================================
+// GESTOR DE AUDIO ULTRA-COMPATIBLE (SAFARI IOS, FIREFOX ANDROID, CHROME)
+// =========================================================
+let globalAudioCtx = null;
+let isAudioUnlocked = false;
+
+const getAudioContext = () => {
+  if (!globalAudioCtx) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) {
+      globalAudioCtx = new AudioContextClass();
+    }
+  }
+  return globalAudioCtx;
+};
+
+// Desbloquear audio en el primer toque de pantalla (crucial para iOS y Firefox Android)
+export const unlockAudioContext = () => {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
+    if (!isAudioUnlocked) {
+      const buffer = ctx.createBuffer(1, 1, 22050);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start(0);
+      isAudioUnlocked = true;
+    }
+  } catch (e) {
+    // Ignorar si aún no hay interacción
+  }
+};
+
+// Auto-desbloqueo global en cualquier interacción de pantalla
+if (typeof window !== 'undefined') {
+  ['touchstart', 'touchend', 'pointerdown', 'click', 'keydown'].forEach((eventName) => {
+    window.addEventListener(eventName, unlockAudioContext, { passive: true });
+  });
+}
+
+// Reproducción polifónica precisa sin setTimeout
+const playTone = (freq, duration = 0.1, type = 'sine', startTimeOffset = 0, gainLevel = 0.15) => {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
+    const start = ctx.currentTime + startTimeOffset;
+    const end = start + duration;
+
     osc.type = type;
-    osc.frequency.setValueAtTime(freq, ctx.currentTime);
-    gain.gain.setValueAtTime(0.14, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.frequency.setValueAtTime(freq, start);
+
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(gainLevel, start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, end);
+
     osc.connect(gain);
     gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + duration);
+
+    osc.start(start);
+    osc.stop(end + 0.05);
   } catch (e) {
     // Audio bloqueado
   }
 };
 
-const playTickSound = () => playTone(650, 0.04, 'triangle');
-
-const playRetoSound = () => {
-  playTone(392.00, 0.1, 'triangle');
-  setTimeout(() => playTone(523.25, 0.15, 'sawtooth'), 90);
-  setTimeout(() => playTone(659.25, 0.35, 'sawtooth'), 180);
+const playTickSound = (muted = false) => {
+  if (muted) return;
+  playTone(650, 0.04, 'triangle', 0, 0.12);
 };
 
-const playVerdadSound = () => {
-  playTone(440.00, 0.12, 'sine');
-  setTimeout(() => playTone(554.37, 0.15, 'sine'), 100);
-  setTimeout(() => playTone(880.00, 0.4, 'sine'), 200);
+const playRetoSound = (muted = false) => {
+  if (muted) return;
+  playTone(392.00, 0.12, 'triangle', 0.00, 0.18);
+  playTone(523.25, 0.14, 'sawtooth', 0.08, 0.20);
+  playTone(659.25, 0.45, 'sawtooth', 0.16, 0.25);
+  playTone(783.99, 0.55, 'sine',     0.26, 0.22);
+};
+
+const playVerdadSound = (muted = false) => {
+  if (muted) return;
+  playTone(440.00, 0.14, 'sine', 0.00, 0.18);
+  playTone(554.37, 0.16, 'sine', 0.09, 0.20);
+  playTone(880.00, 0.50, 'sine', 0.18, 0.25);
+  playTone(1108.73, 0.60, 'sine', 0.28, 0.20);
 };
 
 export default function Room({ 
@@ -144,6 +212,30 @@ export default function Room({
 
   const spinInterval = useRef(null);
 
+  // Estado de Sonido (Persistente con desbloqueo para iOS y Firefox Android)
+  const [isMuted, setIsMuted] = useState(() => {
+    try {
+      return localStorage.getItem('onfire_muted') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleMute = () => {
+    unlockAudioContext();
+    setIsMuted((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('onfire_muted', next.toString());
+      } catch {}
+      if (!next) {
+        // Sonido de confirmación al activar audio
+        playTone(587.33, 0.12, 'sine', 0, 0.15);
+      }
+      return next;
+    });
+  };
+
   // URL para compartir la sala por QR o enlace directo
   const shareUrl = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
 
@@ -172,7 +264,7 @@ export default function Room({
       if (!spinInterval.current && roomData.players?.length > 0) {
         spinInterval.current = setInterval(() => {
           setDisplayIndex((prev) => (prev + 1) % roomData.players.length);
-          playTickSound();
+          playTickSound(isMuted);
         }, 90);
       }
     } else {
@@ -181,7 +273,7 @@ export default function Room({
         spinInterval.current = null;
       }
     }
-  }, [roomData?.isSpinning, roomData?.players]);
+  }, [roomData?.isSpinning, roomData?.players, isMuted]);
 
   // Disparar Super Animación y Sonidos cuando cae el resultado
   useEffect(() => {
@@ -193,9 +285,9 @@ export default function Room({
         
         setSplashReveal(tipo);
         if (tipo === 'reto') {
-          playRetoSound();
+          playRetoSound(isMuted);
         } else {
-          playVerdadSound();
+          playVerdadSound(isMuted);
         }
 
         if (navigator.vibrate) navigator.vibrate([80, 40, 120, 40, 160]);
@@ -207,7 +299,7 @@ export default function Room({
         return () => clearTimeout(timer);
       }
     }
-  }, [roomData?.currentChallenge, roomData?.isSpinning]);
+  }, [roomData?.currentChallenge, roomData?.isSpinning, isMuted]);
 
   // Temporizador / Countdown de 10 segundos y control de animaciones ardientes
   const [countdown, setCountdown] = useState(0);
@@ -269,6 +361,7 @@ export default function Room({
 
   // Girar Ruleta
   const handleSpin = async () => {
+    unlockAudioContext();
     if (!roomData || !roomData.players || roomData.players.length < 2) {
       alert('¡Hacen falta al menos 2 jugadores en la sala para girar!');
       return;
@@ -902,6 +995,15 @@ export default function Room({
             title="Mostrar código QR de la sala"
           >
             <QrCode className="w-4 h-4" />
+          </button>
+
+          {/* Botón Sonido (Activar / Silenciar y desbloquear audio) */}
+          <button
+            onClick={handleToggleMute}
+            className="p-2 bg-slate-900/90 border border-slate-700/70 hover:border-slate-500 rounded-xl text-slate-300 hover:text-white transition shadow-sm flex items-center justify-center"
+            title={isMuted ? "Sonido silenciado - Tocá para activar" : "Sonido activo - Tocá para silenciar"}
+          >
+            {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-amber-400" />}
           </button>
 
           {/* Botón Pantalla Completa (Android / iOS / Desktop) */}
