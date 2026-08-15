@@ -31,7 +31,8 @@ import {
   Minimize,
   Smartphone,
   Clock,
-  Timer
+  Timer,
+  RefreshCw
 } from 'lucide-react';
 
 // Generador de audio sintetizado Web Audio API
@@ -509,6 +510,26 @@ export default function Room({
       }
     };
     reader.readAsText(file);
+  };
+
+  // Forzar limpieza completa de caché y Service Worker
+  const handleForcePurgeCache = async () => {
+    try {
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const r of registrations) {
+          await r.unregister();
+        }
+      }
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+      localStorage.removeItem('onfire_active_session');
+      window.location.reload(true);
+    } catch (e) {
+      window.location.reload(true);
+    }
   };
 
   if (!roomData) {
@@ -1905,6 +1926,23 @@ export default function Room({
                   </p>
                 </div>
               )}
+
+              {/* Sección de Versión y Limpieza de Caché */}
+              <div className="pt-3 border-t border-slate-800 space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-300">
+                  <span className="font-semibold">Versión Instalada:</span>
+                  <span className="px-2.5 py-0.5 rounded-full bg-slate-950 border border-slate-800 font-mono font-bold text-rose-400">
+                    {appVersion}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleForcePurgeCache}
+                  className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl border border-slate-700 text-xs font-bold flex items-center justify-center gap-2 transition active:scale-95"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 text-pink-400" /> Limpiar Caché y Forzar Actualización
+                </button>
+              </div>
 
               <button
                 onClick={() => setShowAdminPanel(false)}

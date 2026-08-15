@@ -141,7 +141,9 @@ export default function App() {
   useEffect(() => {
     const checkForUpdates = async () => {
       try {
-        const res = await fetch(`./version.json?_t=${Date.now()}`, { cache: 'no-store' });
+        const basePath = window.location.pathname.endsWith('/') ? window.location.pathname : window.location.pathname + '/';
+        const url = `${basePath}version.json?_t=${Date.now()}`;
+        const res = await fetch(url, { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           if (data && data.version && data.version !== APP_VERSION) {
@@ -163,7 +165,7 @@ export default function App() {
             // Recargar automáticamente para aplicar la última versión
             setTimeout(() => {
               window.location.reload(true);
-            }, 1200);
+            }, 1000);
           }
         }
       } catch (err) {
@@ -780,9 +782,14 @@ export default function App() {
             <Flame className="w-14 h-14 sm:w-16 sm:h-16 text-white fill-white drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]" />
           </motion.div>
 
-          <h1 className="text-5xl sm:text-6xl font-black tracking-tight bg-gradient-to-r from-rose-400 via-fuchsia-400 to-amber-300 bg-clip-text text-transparent drop-shadow-[0_0_25px_rgba(244,63,94,0.5)]">
-            OnFire 🔥
-          </h1>
+          <div className="flex flex-col items-center">
+            <h1 className="text-5xl sm:text-6xl font-black tracking-tight bg-gradient-to-r from-rose-400 via-fuchsia-400 to-amber-300 bg-clip-text text-transparent drop-shadow-[0_0_25px_rgba(244,63,94,0.5)]">
+              OnFire 🔥
+            </h1>
+            <span className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full bg-slate-900/90 border border-slate-800 text-xs font-mono font-bold text-rose-400 shadow-md mt-2">
+              Versión {APP_VERSION}
+            </span>
+          </div>
           <p className="text-slate-300 text-sm sm:text-base mt-2 font-semibold tracking-wide">
             Juego de Ruleta y +500 Retos Picantes en Vivo
           </p>
