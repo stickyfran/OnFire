@@ -22,7 +22,10 @@ import {
   Trash2,
   FileText,
   Search,
-  PenTool
+  PenTool,
+  Eye,
+  Lock,
+  FlameKindling
 } from 'lucide-react';
 
 // Generador de audio sintetizado Web Audio API
@@ -33,7 +36,7 @@ const playTone = (freq, duration = 0.1, type = 'sine') => {
     const gain = ctx.createGain();
     osc.type = type;
     osc.frequency.setValueAtTime(freq, ctx.currentTime);
-    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.setValueAtTime(0.14, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
     osc.connect(gain);
     gain.connect(ctx.destination);
@@ -45,10 +48,17 @@ const playTone = (freq, duration = 0.1, type = 'sine') => {
 };
 
 const playTickSound = () => playTone(650, 0.04, 'triangle');
-const playWinSound = () => {
-  playTone(523.25, 0.12, 'sine');
-  setTimeout(() => playTone(659.25, 0.12, 'sine'), 90);
-  setTimeout(() => playTone(783.99, 0.25, 'sine'), 180);
+
+const playRetoSound = () => {
+  playTone(392.00, 0.1, 'triangle');
+  setTimeout(() => playTone(523.25, 0.15, 'sawtooth'), 90);
+  setTimeout(() => playTone(659.25, 0.35, 'sawtooth'), 180);
+};
+
+const playVerdadSound = () => {
+  playTone(440.00, 0.12, 'sine');
+  setTimeout(() => playTone(554.37, 0.15, 'sine'), 100);
+  setTimeout(() => playTone(880.00, 0.4, 'sine'), 200);
 };
 
 export default function Room({ roomId, playerId, playerName, isHost, canCheat, onLeave }) {
@@ -62,6 +72,10 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
   // Estado para ocultar/mostrar superpoderes de trampa con doble toque en #Ronda N
   const [cheatUIVisible, setCheatUIVisible] = useState(true);
   const lastTapRef = useRef(0);
+
+  // Super Animación de Revelación de Pantalla Completa (Reto vs Verdad)
+  const [splashReveal, setSplashReveal] = useState(null); // 'reto' | 'verdad' | null
+  const lastRevealedChallengeId = useRef(null);
 
   // Modal para fijar Reto o Verdad en la trampa
   const [showCheatChallengeModal, setShowCheatChallengeModal] = useState(false);
@@ -108,13 +122,32 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
     }
   }, [roomData?.isSpinning, roomData?.players]);
 
-  // Sonido de victoria y vibración
+  // Disparar Super Animación y Sonidos cuando cae el resultado
   useEffect(() => {
-    if (roomData?.currentResult && !roomData?.isSpinning) {
-      playWinSound();
-      if (navigator.vibrate) navigator.vibrate([100, 50, 150]);
+    if (roomData?.currentChallenge && !roomData?.isSpinning) {
+      const challengeId = roomData.currentChallenge.id || roomData.currentChallenge.texto;
+      if (lastRevealedChallengeId.current !== challengeId) {
+        lastRevealedChallengeId.current = challengeId;
+        const tipo = roomData.currentChallenge.tipo?.toLowerCase() || 'reto';
+        
+        // Disparar super splash
+        setSplashReveal(tipo);
+        if (tipo === 'reto') {
+          playRetoSound();
+        } else {
+          playVerdadSound();
+        }
+
+        if (navigator.vibrate) navigator.vibrate([80, 40, 120, 40, 160]);
+
+        const timer = setTimeout(() => {
+          setSplashReveal(null);
+        }, 1500);
+
+        return () => clearTimeout(timer);
+      }
     }
-  }, [roomData?.currentResult, roomData?.isSpinning]);
+  }, [roomData?.currentChallenge, roomData?.isSpinning]);
 
   // Doble toque en #Ronda para ocultar/mostrar superpoderes de trampa
   const handleRondaDoubleTap = () => {
@@ -359,6 +392,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
   const target1Player = playersList.find(p => p.id === roomData.nextTarget);
   const target2Player = playersList.find(p => p.id === roomData.nextPair);
   const fixedChallenge = roomData.nextChallenge;
+  const currentChallenge = roomData.currentChallenge;
 
   // Identificación personalizada de la interacción en pantalla
   const isMeActor = roomData.currentResult && (
@@ -387,6 +421,80 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
       {/* Fondos */}
       <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-rose-600/15 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-fuchsia-600/15 rounded-full blur-3xl pointer-events-none" />
+
+      {/* ========================================================== */}
+      {/* SUPER ANIMACIÓN DE PANTALLA COMPLETA (RETO vs VERDAD)     */}
+      {/* ========================================================== */}
+      <AnimatePresence>
+        {splashReveal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, scale: 1.15 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none overflow-hidden"
+          >
+            {/* Halo de luz expansivo */}
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: [0, 2.5, 3], opacity: [0, 0.9, 0] }}
+              transition={{ duration: 1.2, ease: "easeOut" }}
+              className={`absolute w-80 h-80 rounded-full blur-3xl ${
+                splashReveal === 'reto'
+                  ? 'bg-gradient-to-tr from-rose-600 via-orange-500 to-amber-400'
+                  : 'bg-gradient-to-tr from-purple-600 via-fuchsia-600 to-pink-500'
+              }`}
+            />
+
+            {/* Tarjeta de impacto central */}
+            <motion.div
+              initial={{ scale: 0.2, rotate: -15, opacity: 0 }}
+              animate={{ scale: [0.2, 1.2, 1], rotate: [-15, 3, 0], opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 350, damping: 18 }}
+              className={`relative px-8 py-6 rounded-3xl border-4 shadow-2xl flex flex-col items-center justify-center text-center ${
+                splashReveal === 'reto'
+                  ? 'bg-gradient-to-b from-slate-900/95 to-rose-950/95 border-rose-500 shadow-[0_0_60px_rgba(244,63,94,0.8)]'
+                  : 'bg-gradient-to-b from-slate-900/95 to-purple-950/95 border-fuchsia-500 shadow-[0_0_60px_rgba(217,70,239,0.8)]'
+              }`}
+            >
+              {splashReveal === 'reto' ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.2, 1] }}
+                    transition={{ repeat: Infinity, duration: 0.8 }}
+                    className="p-4 rounded-full bg-rose-500/20 border-2 border-rose-500/60 shadow-[0_0_30px_#f43f5e] mb-3"
+                  >
+                    <Flame className="w-16 h-16 text-rose-500 fill-rose-500 drop-shadow-[0_0_15px_#f43f5e]" />
+                  </motion.div>
+                  <span className="text-xs uppercase font-black tracking-widest text-amber-300 drop-shadow-md">
+                    ¡PREPARATE PARA ACCIÓN!
+                  </span>
+                  <h1 className="text-5xl sm:text-6xl font-black italic tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-rose-400 to-pink-500 drop-shadow-[0_0_20px_rgba(244,63,94,0.9)] mt-1">
+                    🔥 RETO
+                  </h1>
+                </>
+              ) : (
+                <>
+                  <motion.div
+                    animate={{ scale: [1, 1.15, 1], rotate: [0, -5, 5, 0] }}
+                    transition={{ repeat: Infinity, duration: 1 }}
+                    className="p-4 rounded-full bg-purple-500/20 border-2 border-fuchsia-500/60 shadow-[0_0_30px_#d946ef] mb-3"
+                  >
+                    <Sparkles className="w-16 h-16 text-fuchsia-400 fill-fuchsia-400 drop-shadow-[0_0_15px_#d946ef]" />
+                  </motion.div>
+                  <span className="text-xs uppercase font-black tracking-widest text-purple-300 drop-shadow-md">
+                    ¡SIN FILTRO NI VERGÜENZA!
+                  </span>
+                  <h1 className="text-5xl sm:text-6xl font-black italic tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-fuchsia-400 to-pink-400 drop-shadow-[0_0_20px_rgba(217,70,239,0.9)] mt-1">
+                    💜 VERDAD
+                  </h1>
+                </>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Header */}
       <header className="w-full max-w-lg flex items-center justify-between pt-2 pb-3 z-10 border-b border-slate-800/80">
@@ -421,8 +529,8 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
         )}
       </header>
 
-      {/* BARRA DE NIVEL DE PICANTE (Host y Papito pueden cambiarla silenciosamente) */}
-      <div className="w-full max-w-lg z-10 my-3">
+      {/* BARRA DE NIVEL DE PICANTE */}
+      <div className="w-full max-w-lg z-10 my-2">
         <div className="p-2 bg-slate-900/90 border border-slate-800 rounded-2xl flex items-center justify-between shadow-lg backdrop-blur-md">
           <button
             onClick={() => (isHost || canCheat) && handleChangeSpiceLevel(1)}
@@ -479,14 +587,59 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
         </div>
       </div>
 
-      {/* RULETA CENTRAL */}
-      <main className="w-full max-w-lg flex flex-col items-center justify-center my-auto z-10 py-2">
-        <div className="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center mb-4">
+      {/* ========================================================== */}
+      {/* ÁREA CENTRAL: RULETA CON CORONA SUPERIOR DE RETO/VERDAD    */}
+      {/* ========================================================== */}
+      <main className="w-full max-w-lg flex flex-col items-center justify-center my-auto z-10 py-1">
+        
+        {/* CORONA SUPERIOR DE LA RULETA (Diseño cautivante de RETO o VERDAD) */}
+        <div className="h-10 flex items-center justify-center mb-1">
+          <AnimatePresence>
+            {currentChallenge && !roomData.isSpinning && (
+              <motion.div
+                initial={{ y: -15, opacity: 0, scale: 0.8 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                exit={{ y: -10, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 18 }}
+                className={`px-5 py-1.5 rounded-full border-2 shadow-xl flex items-center gap-2 ${
+                  currentChallenge.tipo === 'reto'
+                    ? 'bg-gradient-to-r from-rose-600 via-orange-500 to-rose-600 border-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.6)] animate-pulse'
+                    : 'bg-gradient-to-r from-purple-700 via-fuchsia-600 to-purple-700 border-fuchsia-400 shadow-[0_0_20px_rgba(217,70,239,0.6)] animate-pulse'
+                }`}
+              >
+                {currentChallenge.tipo === 'reto' ? (
+                  <>
+                    <Flame className="w-4 h-4 text-amber-200 fill-amber-200" />
+                    <span className="text-xs font-black tracking-widest text-white uppercase drop-shadow-md">
+                      🔥 RETO PICANTE
+                    </span>
+                    <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 text-pink-200 fill-pink-200" />
+                    <span className="text-xs font-black tracking-widest text-white uppercase drop-shadow-md">
+                      💜 VERDAD SIN FILTRO
+                    </span>
+                    <Eye className="w-3.5 h-3.5 text-fuchsia-200" />
+                  </>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* RULETA CENTRAL */}
+        <div className="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center mb-3">
           <motion.div
             animate={{
               rotate: roomData.isSpinning ? 720 : 0,
               borderColor: roomData.isSpinning 
                 ? ['#f43f5e', '#d946ef', '#a855f7', '#f43f5e'] 
+                : currentChallenge?.tipo === 'reto'
+                ? '#f43f5e'
+                : currentChallenge?.tipo === 'verdad'
+                ? '#d946ef'
                 : currentSpice === 3 ? '#ec4899' : currentSpice === 2 ? '#f43f5e' : '#f59e0b'
             }}
             transition={{
@@ -569,31 +722,27 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
           </div>
         </div>
 
-        {/* Reto Asignado */}
+        {/* Tarjeta del Reto / Verdad con Diseño Cautivante */}
         <AnimatePresence>
-          {roomData.currentChallenge && !roomData.isSpinning && (
+          {currentChallenge && !roomData.isSpinning && (
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="w-full glass-card p-4 sm:p-5 rounded-2xl mb-4 text-center border-rose-500/30 shadow-[0_0_25px_rgba(244,63,94,0.2)]"
+              className={`w-full glass-card p-4 sm:p-5 rounded-2xl mb-3 text-center border shadow-2xl ${
+                currentChallenge.tipo === 'reto'
+                  ? 'border-rose-500/40 shadow-[0_0_30px_rgba(244,63,94,0.2)] bg-gradient-to-b from-slate-900/90 to-rose-950/40'
+                  : 'border-fuchsia-500/40 shadow-[0_0_30px_rgba(217,70,239,0.2)] bg-gradient-to-b from-slate-900/90 to-purple-950/40'
+              }`}
             >
               <div className="flex items-center justify-center gap-2 mb-2">
-                <span className={`px-3 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider ${
-                  roomData.currentChallenge.tipo === 'reto'
-                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
-                    : 'bg-purple-500/20 text-purple-400 border border-purple-500/40'
-                }`}>
-                  {roomData.currentChallenge.tipo}
-                </span>
-
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 border border-slate-700 text-slate-300">
                   {currentSpice === 1 ? '🌶️ Suave' : currentSpice === 2 ? '🔥 Caliente' : '💀 Fuego Total'}
                 </span>
               </div>
 
               <p className="text-base sm:text-lg font-semibold text-slate-100 font-serif italic leading-relaxed">
-                "{roomData.currentChallenge.texto}"
+                "{currentChallenge.texto}"
               </p>
             </motion.div>
           )}
@@ -627,7 +776,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
                   🎯 {target1Player.name}
                 </span>
               ) : (
-                <span className="text-[10px] text-slate-500">🎯 (Toca 1º jugador)</span>
+                <span className="text-[10px] text-slate-500">🎯 (Toca 1º)</span>
               )}
               {target2Player ? (
                 <span className="px-2 py-0.5 bg-purple-500/20 border border-purple-500/40 rounded-lg text-purple-300 truncate font-semibold">
@@ -661,7 +810,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
             </div>
           </div>
 
-          {/* Si hay reto fijado en la trampa, mostrar preview */}
+          {/* Preview del reto armado */}
           {fixedChallenge && (
             <div className="px-2 py-1 bg-slate-950/80 rounded-lg border border-pink-500/30 text-[11px] text-slate-300 flex items-center justify-between">
               <span className="truncate italic">"{fixedChallenge.texto}"</span>
