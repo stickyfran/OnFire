@@ -684,6 +684,8 @@ export default function App() {
     }, 280);
   };
 
+  const { isSecret } = processName(rawInputName);
+
   return (
     <div className="min-h-[100dvh] bg-slate-950 flex flex-col items-center justify-start sm:justify-center p-3 sm:p-6 pb-20 sm:pb-8 relative overflow-y-auto select-none">
       
