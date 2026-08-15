@@ -417,49 +417,6 @@ export default function Room({
     }
   };
 
-  // Auto-desvanecimiento del Header si no hay interacción o si se activa pantalla completa
-  const [showHeader, setShowHeader] = useState(true);
-  const headerTimeoutRef = useRef(null);
-
-  const resetHeaderTimer = useCallback(() => {
-    setShowHeader(true);
-    if (headerTimeoutRef.current) clearTimeout(headerTimeoutRef.current);
-    headerTimeoutRef.current = setTimeout(() => {
-      setShowHeader(false);
-    }, 3500);
-  }, []);
-
-  useEffect(() => {
-    resetHeaderTimer();
-
-    const handleUserInteraction = () => {
-      resetHeaderTimer();
-    };
-
-    window.addEventListener('touchstart', handleUserInteraction, { passive: true });
-    window.addEventListener('touchmove', handleUserInteraction, { passive: true });
-    window.addEventListener('mousemove', handleUserInteraction, { passive: true });
-    window.addEventListener('scroll', handleUserInteraction, { passive: true });
-    window.addEventListener('click', handleUserInteraction, { passive: true });
-
-    return () => {
-      if (headerTimeoutRef.current) clearTimeout(headerTimeoutRef.current);
-      window.removeEventListener('touchstart', handleUserInteraction);
-      window.removeEventListener('touchmove', handleUserInteraction);
-      window.removeEventListener('mousemove', handleUserInteraction);
-      window.removeEventListener('scroll', handleUserInteraction);
-      window.removeEventListener('click', handleUserInteraction);
-    };
-  }, [resetHeaderTimer]);
-
-  useEffect(() => {
-    if (isFullscreen) {
-      setShowHeader(false);
-    } else {
-      resetHeaderTimer();
-    }
-  }, [isFullscreen, resetHeaderTimer]);
-
   const spinInterval = useRef(null);
   const spinTimeoutRef = useRef(null);
   const isSpinningLockRef = useRef(false);
@@ -1056,114 +1013,85 @@ export default function Room({
         )}
       </AnimatePresence>
 
-      {/* Botón flotante discreto para re-mostrar el header cuando está oculto */}
-      {!showHeader && (
-        <button
-          onClick={() => {
-            setShowHeader(true);
-            resetHeaderTimer();
-          }}
-          className="fixed top-1 left-1/2 -translate-x-1/2 z-40 px-3 py-0.5 bg-slate-900/85 hover:bg-slate-800 border border-slate-700/60 rounded-full text-[10px] font-bold text-slate-400 hover:text-white flex items-center gap-1 backdrop-blur-md shadow-md active:scale-95 transition"
-        >
-          <span>⚙️ Ajustes ▼</span>
-        </button>
-      )}
-
-      {/* Header con BOTÓN DE SALA Y BOTÓN DE QR (Auto-desvanecible) */}
-      <header className={`w-full max-w-lg flex items-center justify-between z-30 transition-all duration-500 flex-shrink-0 ${
-        showHeader 
-          ? 'opacity-100 translate-y-0 max-h-16 pt-1 pb-1.5 border-b border-slate-800/80 mb-0.5' 
-          : 'opacity-0 -translate-y-full max-h-0 overflow-hidden pointer-events-none mb-0 pt-0 pb-0 border-b-0'
-      }`}>
+      {/* Header con BOTÓN DE SALA, QR, SONIDO, PANTALLA COMPLETA Y MODO RENDIMIENTO (SIEMPRE VISIBLE) */}
+      <header className="w-full max-w-lg flex items-center justify-between z-30 pt-1 pb-1.5 border-b border-slate-800/80 mb-0.5 flex-shrink-0">
         <button
           onClick={onLeave}
-          className="p-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-rose-400 transition"
+          className="p-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-rose-400 transition active:scale-95"
           title="Salir de la sala"
         >
           <LogOut className="w-4 h-4" />
         </button>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 sm:gap-1.5">
           {/* Botón Código de Sala */}
           <button
             onClick={handleCopyCode}
-            className="flex items-center gap-1.5 px-3 py-1 bg-slate-900/90 border border-rose-500/30 rounded-xl text-[11px] font-mono font-bold tracking-widest text-rose-300 hover:border-rose-500 transition shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900/90 border border-rose-500/30 rounded-xl text-xs font-mono font-bold tracking-widest text-rose-300 hover:border-rose-500 transition shadow-sm active:scale-95"
           >
             <span>SALA: {roomId}</span>
-            {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+            {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
           </button>
 
           {/* Botón QR para escanear y entrar de una */}
           <button
             onClick={() => setShowQRModal(true)}
-            className="p-1.5 bg-slate-900/90 border border-rose-500/40 hover:border-rose-400 rounded-xl text-rose-400 hover:text-white transition shadow-sm flex items-center justify-center"
+            className="p-2 bg-slate-900/90 border border-rose-500/40 hover:border-rose-400 rounded-xl text-rose-400 hover:text-white transition shadow-sm flex items-center justify-center active:scale-95"
             title="Mostrar código QR de la sala"
           >
             <QrCode className="w-4 h-4" />
           </button>
 
-          {/* Botón Sonido (Activar / Silenciar y desbloquear audio) */}
+          {/* Botón Sonido (Activar / Silenciar) */}
           <button
             onClick={handleToggleMute}
-            className="p-1.5 bg-slate-900/90 border border-slate-700/70 hover:border-slate-500 rounded-xl text-slate-300 hover:text-white transition shadow-sm flex items-center justify-center"
+            className="p-2 bg-slate-900/90 border border-slate-700/70 hover:border-slate-500 rounded-xl text-slate-300 hover:text-white transition shadow-sm flex items-center justify-center active:scale-95"
             title={isMuted ? "Sonido silenciado - Tocá para activar" : "Sonido activo - Tocá para silenciar"}
           >
             {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-amber-400" />}
           </button>
 
-          {/* Botón Pantalla Completa (Android / iOS / Desktop) */}
+          {/* Botón Pantalla Completa */}
           <button
             onClick={handleToggleFullscreen}
-            className="p-1.5 bg-slate-900/90 border border-slate-700/70 hover:border-slate-500 rounded-xl text-slate-300 hover:text-white transition shadow-sm flex items-center justify-center"
+            className="p-2 bg-slate-900/90 border border-slate-700/70 hover:border-slate-500 rounded-xl text-slate-300 hover:text-white transition shadow-sm flex items-center justify-center active:scale-95"
             title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
           >
             {isFullscreen ? <Minimize className="w-4 h-4 text-amber-400" /> : <Maximize className="w-4 h-4" />}
           </button>
 
-          {/* Botón Modo Rendimiento / Animaciones Reducidas (para celulares de bajo rendimiento) */}
+          {/* Botón Modo Rendimiento / Animaciones Reducidas */}
           <button
             onClick={handleToggleLowSpecs}
-            className={`p-1.5 rounded-xl text-xs transition shadow-sm flex items-center justify-center border ${
+            className={`p-2 rounded-xl text-xs transition shadow-sm flex items-center justify-center border active:scale-95 ${
               lowSpecsMode
                 ? 'bg-amber-500/20 text-amber-300 border-amber-500/60 shadow-[0_0_10px_rgba(245,158,11,0.4)]'
                 : 'bg-slate-900/90 text-slate-400 hover:text-white border-slate-700/70 hover:border-slate-500'
             }`}
             title={
               lowSpecsMode
-                ? "Modo Rendimiento ACTIVO (Animaciones reducidas para teléfonos lentos)"
-                : "Modo Rendimiento DESACTIVADO (Tocá para reducir animaciones y acelerar la app)"
+                ? "Modo Rendimiento ACTIVO (Animaciones reducidas)"
+                : "Modo Rendimiento DESACTIVADO (Tocá para acelerar la app)"
             }
           >
             <Zap className={`w-4 h-4 ${lowSpecsMode ? 'fill-amber-400 text-amber-400' : ''}`} />
           </button>
         </div>
-
-        {isHost || canCheat ? (
-          <button
-            onClick={() => setShowAdminPanel(!showAdminPanel)}
-            className="p-2 bg-slate-900 border border-purple-500/40 rounded-xl text-purple-400 hover:text-purple-300 transition"
-            title="Ajustes de Sala"
-          >
-            <Settings className="w-4 h-4" />
-          </button>
-        ) : (
-          <div className="w-8" />
-        )}
       </header>
 
       {/* BARRA DE NIVEL DE PICANTE Y TRAMPA INTEGRADA */}
       <div className="w-full max-w-lg z-10 my-0.5 sm:my-1 flex-shrink-0">
-        <div className="p-1 sm:p-1.5 bg-slate-900/90 border border-slate-800 rounded-xl sm:rounded-2xl shadow-lg backdrop-blur-md space-y-1">
+        <div className="p-1.5 sm:p-2 bg-slate-900/95 border border-slate-800 rounded-xl sm:rounded-2xl shadow-lg backdrop-blur-md space-y-1.5">
           
-          {/* Fila 1: Botones de Nivel de Picante (1 a 4) */}
-          <div className="flex items-center justify-between gap-1">
+          {/* Fila 1: Botones de Nivel de Picante (1 a 4) GRANDES Y LEGIBLES */}
+          <div className="flex items-center justify-between gap-1.5">
             <button
               onClick={() => canCheat && handleChangeSpiceLevel(1)}
               disabled={!canCheat}
-              className={`flex-1 py-1 px-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-[11px] font-bold transition flex items-center justify-center gap-0.5 sm:gap-1 ${
+              className={`flex-1 py-1.5 sm:py-2 px-1 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1 ${
                 currentSpice === 1
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
-                  : 'text-slate-500 hover:text-slate-300'
+                  ? 'bg-amber-500/25 text-amber-300 border border-amber-500/60 shadow-[0_0_12px_rgba(245,158,11,0.4)] font-black'
+                  : 'text-slate-400 hover:text-slate-200'
               } ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
             >
               <span>🌶️</span>
@@ -1173,10 +1101,10 @@ export default function Room({
             <button
               onClick={() => canCheat && handleChangeSpiceLevel(2)}
               disabled={!canCheat}
-              className={`flex-1 py-1 px-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-[11px] font-bold transition flex items-center justify-center gap-0.5 sm:gap-1 ${
+              className={`flex-1 py-1.5 sm:py-2 px-1 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1 ${
                 currentSpice === 2
-                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.4)]'
-                  : 'text-slate-500 hover:text-slate-300'
+                  ? 'bg-rose-500/25 text-rose-300 border border-rose-500/60 shadow-[0_0_12px_rgba(244,63,94,0.5)] font-black'
+                  : 'text-slate-400 hover:text-slate-200'
               } ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
             >
               <span>🔥</span>
@@ -1186,10 +1114,10 @@ export default function Room({
             <button
               onClick={() => canCheat && handleChangeSpiceLevel(3)}
               disabled={!canCheat}
-              className={`flex-1 py-1 px-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-[11px] font-bold transition flex items-center justify-center gap-0.5 sm:gap-1 ${
+              className={`flex-1 py-1.5 sm:py-2 px-1 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1 ${
                 currentSpice === 3
-                  ? 'bg-purple-600/30 text-purple-300 border border-purple-500/60 shadow-[0_0_12px_rgba(168,85,247,0.5)]'
-                  : 'text-slate-500 hover:text-slate-300'
+                  ? 'bg-purple-600/35 text-purple-300 border border-purple-500/70 shadow-[0_0_14px_rgba(168,85,247,0.6)] font-black'
+                  : 'text-slate-400 hover:text-slate-200'
               } ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
             >
               <span>💀</span>
@@ -1199,10 +1127,10 @@ export default function Room({
             <button
               onClick={() => canCheat && handleChangeSpiceLevel(4)}
               disabled={!canCheat}
-              className={`flex-1 py-1 px-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-[11px] font-black transition flex items-center justify-center gap-0.5 sm:gap-1 ${
+              className={`flex-1 py-1.5 sm:py-2 px-1 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1 ${
                 currentSpice === 4
-                  ? 'bg-red-600/30 text-red-300 border border-red-500/70 shadow-[0_0_15px_rgba(239,68,68,0.7)]'
-                  : 'text-slate-500 hover:text-slate-300'
+                  ? 'bg-red-600/35 text-red-300 border border-red-500/80 shadow-[0_0_16px_rgba(239,68,68,0.8)] font-black'
+                  : 'text-slate-400 hover:text-slate-200'
               } ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
             >
               <span className="flex items-center -space-x-0.5">💀🔥</span>
@@ -1210,20 +1138,20 @@ export default function Room({
             </button>
           </div>
 
-          {/* Fila 2: Forzar Reto o Verdad (Justo debajo de los botones de picante) */}
+          {/* Fila 2: Forzar Reto o Verdad (Modo Trampa) */}
           {isCheatActiveVisual && (
-            <div className="pt-1 border-t border-slate-800/80 flex items-center justify-between gap-1">
-              <span className="text-[9px] sm:text-[10px] font-bold text-rose-400 flex items-center gap-1 flex-shrink-0">
-                <EyeOff className="w-3 h-3" /> Forzar:
+            <div className="pt-1.5 border-t border-slate-800/80 flex items-center justify-between gap-1.5">
+              <span className="text-xs font-bold text-rose-400 flex items-center gap-1 flex-shrink-0">
+                <EyeOff className="w-3.5 h-3.5" /> Forzar:
               </span>
 
-              <div className="flex items-center gap-1 flex-1 justify-end">
+              <div className="flex items-center gap-1.5 flex-1 justify-end">
                 <button
                   type="button"
                   onClick={() => handleToggleCheatType('reto')}
-                  className={`py-0.5 px-2.5 rounded-lg text-[10px] sm:text-xs font-black transition flex items-center gap-1 active:scale-95 ${
+                  className={`py-1 px-3 rounded-xl text-xs font-black transition flex items-center gap-1 active:scale-95 ${
                     roomData.nextType === 'reto'
-                      ? 'bg-rose-600 text-white shadow-[0_0_10px_rgba(244,63,94,0.7)] border border-rose-400'
+                      ? 'bg-rose-600 text-white shadow-[0_0_12px_rgba(244,63,94,0.8)] border border-rose-400'
                       : 'bg-slate-800/90 text-slate-400 hover:text-rose-300 border border-slate-700/70'
                   }`}
                 >
@@ -1233,9 +1161,9 @@ export default function Room({
                 <button
                   type="button"
                   onClick={() => handleToggleCheatType('verdad')}
-                  className={`py-0.5 px-2.5 rounded-lg text-[10px] sm:text-xs font-black transition flex items-center gap-1 active:scale-95 ${
+                  className={`py-1 px-3 rounded-xl text-xs font-black transition flex items-center gap-1 active:scale-95 ${
                     roomData.nextType === 'verdad'
-                      ? 'bg-purple-600 text-white shadow-[0_0_10px_rgba(168,85,247,0.7)] border border-purple-400'
+                      ? 'bg-purple-600 text-white shadow-[0_0_12px_rgba(168,85,247,0.8)] border border-purple-400'
                       : 'bg-slate-800/90 text-slate-400 hover:text-purple-300 border border-slate-700/70'
                   }`}
                 >
@@ -1249,7 +1177,7 @@ export default function Room({
                     className="p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white"
                     title="Desactivar forzar tipo"
                   >
-                    <X className="w-3 h-3" />
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
@@ -1258,34 +1186,46 @@ export default function Room({
 
         </div>
 
-        {/* Indicador de Ronda y Botón Sumar Jugador */}
-        <div className="w-full max-w-lg flex justify-between items-center px-2 mt-0.5 text-[10px] sm:text-[11px] text-slate-400 font-medium flex-shrink-0">
+        {/* Indicador de Ronda y Botones Sumar Jugador + Ajustes Flotante */}
+        <div className="w-full max-w-lg flex justify-between items-center px-1 mt-1 text-xs text-slate-400 font-medium flex-shrink-0">
           <span 
             onClick={handleRondaDoubleTap}
-            className="flex items-center gap-1 cursor-pointer select-none active:opacity-75 font-semibold text-slate-300"
+            className="flex items-center gap-1.5 cursor-pointer select-none active:opacity-75 font-bold text-slate-200"
             title={canCheat ? "Doble toque para ocultar/mostrar superpoderes de trampa" : ""}
           >
-            <TrendingUp className="w-3.5 h-3.5 text-rose-500" /> Ronda #{roomData.roundCount || 0}
+            <TrendingUp className="w-4 h-4 text-rose-500" /> Ronda #{roomData.roundCount || 0}
           </span>
 
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 text-slate-400 font-bold">
-              <Users className="w-3.5 h-3.5 text-purple-400" /> {playersList.length} jugadores
+            <span className="flex items-center gap-1 text-slate-300 font-bold text-xs">
+              <Users className="w-3.5 h-3.5 text-purple-400" /> {playersList.length}
             </span>
+
+            {/* Botón Sumar Jugador */}
             <button
               onClick={() => setNewPlayerModal(true)}
-              className="px-2.5 py-0.5 rounded-full bg-purple-950/70 hover:bg-purple-900 border border-purple-500/40 text-purple-300 text-[10px] font-bold flex items-center gap-1 transition active:scale-95 shadow-sm"
+              className="px-2.5 py-1 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/50 text-purple-200 text-xs font-bold flex items-center gap-1 transition active:scale-95 shadow-sm"
             >
-              <Plus className="w-3 h-3" /> Sumar
+              <Plus className="w-3.5 h-3.5" /> Sumar
+            </button>
+
+            {/* Botón Ajustes integrado y siempre accesible */}
+            <button
+              onClick={() => setShowAdminPanel(true)}
+              className="px-2.5 py-1 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-200 hover:text-white text-xs font-bold flex items-center gap-1 shadow-sm transition active:scale-95"
+              title="Ajustes de la sala"
+            >
+              <Settings className="w-3.5 h-3.5 text-purple-400" />
+              <span>Ajustes</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* ========================================================== */}
-      {/* ÁREA CENTRAL: RULETA CON JUGADORES ALREDEDOR EN ÓRBITA     */}
+      {/* ÁREA CENTRAL: RULETA GRANDE CON JUGADORES EN ÓRBITA         */}
       {/* ========================================================== */}
-      <main className="w-full max-w-lg flex-1 flex flex-col items-center justify-around my-auto z-10 py-0.5 min-h-0">
+      <main className="w-full max-w-lg flex-1 flex flex-col items-center justify-around my-auto z-10 py-1 min-h-0">
         
         {/* CORONA SUPERIOR DE LA RULETA (Diseño cautivante de RETO o VERDAD) */}
         <div className="h-7 flex items-center justify-center mb-0.5 flex-shrink-0">
@@ -1296,7 +1236,7 @@ export default function Room({
                 animate={{ y: 0, opacity: 1, scale: 1 }}
                 exit={{ y: -8, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 300, damping: 18 }}
-                className={`px-3 py-0.5 rounded-full border shadow-lg flex items-center gap-1.5 ${
+                className={`px-3.5 py-0.5 rounded-full border shadow-lg flex items-center gap-1.5 ${
                   currentChallenge.tipo === 'reto'
                     ? 'bg-gradient-to-r from-rose-600 via-orange-500 to-rose-600 border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.6)] animate-pulse'
                     : 'bg-gradient-to-r from-purple-700 via-fuchsia-600 to-purple-700 border-fuchsia-400 shadow-[0_0_15px_rgba(217,70,239,0.6)] animate-pulse'
@@ -1305,7 +1245,7 @@ export default function Room({
                 {currentChallenge.tipo === 'reto' ? (
                   <>
                     <Flame className="w-3.5 h-3.5 text-amber-200 fill-amber-200" />
-                    <span className="text-[11px] font-black tracking-widest text-white uppercase drop-shadow-md">
+                    <span className="text-xs font-black tracking-widest text-white uppercase drop-shadow-md">
                       🔥 RETO PICANTE
                     </span>
                     <Zap className="w-3 h-3 text-amber-300 fill-amber-300" />
@@ -1313,7 +1253,7 @@ export default function Room({
                 ) : (
                   <>
                     <Sparkles className="w-3.5 h-3.5 text-pink-200 fill-pink-200" />
-                    <span className="text-[11px] font-black tracking-widest text-white uppercase drop-shadow-md">
+                    <span className="text-xs font-black tracking-widest text-white uppercase drop-shadow-md">
                       💜 VERDAD SIN FILTRO
                     </span>
                     <Eye className="w-3 h-3 text-fuchsia-200" />
@@ -1324,11 +1264,11 @@ export default function Room({
           </AnimatePresence>
         </div>
 
-        {/* CONTENEDOR DE RULETA CON JUGADORES DISTRIBUIDOS ALREDEDOR */}
-        <div className="relative w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 flex items-center justify-center my-auto flex-shrink-0">
+        {/* CONTENEDOR DE RULETA GRANDE CON JUGADORES DISTRIBUIDOS ALREDEDOR */}
+        <div className="relative w-72 h-72 sm:w-80 sm:h-80 md:w-96 md:h-96 flex items-center justify-center my-auto flex-shrink-0">
           
           {/* Anillo de órbita decorativo */}
-          <div className="absolute inset-3 sm:inset-4 rounded-full border border-dashed border-slate-800/80 pointer-events-none" />
+          <div className="absolute inset-4 sm:inset-5 rounded-full border border-dashed border-slate-800/90 pointer-events-none" />
 
           {/* FUEGO RADIAL GIGANTE ENVOLVIENDO LA RULETA (NIVEL 3 y 4) */}
           {currentSpice >= 3 && (roomData.isSpinning || isFireActive) && (
@@ -1344,23 +1284,23 @@ export default function Room({
               duration: roomData.isSpinning ? 2.8 : 0.4,
               ease: roomData.isSpinning ? "easeInOut" : "easeOut"
             }}
-            className={`absolute w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-full border-4 transition-colors duration-500 ${
+            className={`absolute w-36 h-36 sm:w-40 sm:h-40 md:w-44 md:h-44 rounded-full border-4 transition-colors duration-500 ${
               currentSpice >= 3
-                ? 'border-orange-500 shadow-[0_0_20px_rgba(249,115,22,0.6)]'
+                ? 'border-orange-500 shadow-[0_0_25px_rgba(249,115,22,0.7)]'
                 : roomData.isSpinning
-                ? 'border-pink-500 shadow-[0_0_18px_rgba(244,63,94,0.4)]'
+                ? 'border-pink-500 shadow-[0_0_22px_rgba(244,63,94,0.5)]'
                 : currentChallenge?.tipo === 'reto'
-                ? 'border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.6)]'
+                ? 'border-rose-500 shadow-[0_0_25px_rgba(244,63,94,0.7)]'
                 : currentChallenge?.tipo === 'verdad'
-                ? 'border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.6)]'
+                ? 'border-purple-500 shadow-[0_0_25px_rgba(168,85,247,0.7)]'
                 : 'border-slate-800'
             }`}
           />
 
           {/* Círculo central de la ruleta */}
-          <div className={`w-26 h-26 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full border flex flex-col items-center justify-center p-1.5 text-center relative overflow-hidden z-10 transition-all ${
+          <div className={`w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full border flex flex-col items-center justify-center p-2 text-center relative overflow-hidden z-10 transition-all ${
             currentSpice >= 3
-              ? 'bg-gradient-to-b from-red-950 via-slate-950 to-red-950 border-amber-500/80 shadow-[inset_0_0_25px_rgba(239,68,68,0.7)]'
+              ? 'bg-gradient-to-b from-red-950 via-slate-950 to-red-950 border-amber-500/80 shadow-[inset_0_0_30px_rgba(239,68,68,0.8)]'
               : 'bg-gradient-to-b from-slate-900 to-slate-950 border-slate-700/80 shadow-inner'
           }`}>
             
@@ -1375,11 +1315,11 @@ export default function Room({
                 animate={{ scale: 1, opacity: 1 }}
                 className="flex flex-col items-center px-1"
               >
-                <Flame className="w-6 h-6 sm:w-7 sm:h-7 text-rose-500 animate-pulse mb-0.5" />
-                <span className="text-sm sm:text-base font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-fuchsia-400 tracking-wide uppercase truncate max-w-[90px]">
+                <Flame className="w-7 h-7 sm:w-8 sm:h-8 text-rose-500 animate-pulse mb-0.5" />
+                <span className="text-base sm:text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-fuchsia-400 tracking-wide uppercase truncate max-w-[100px] sm:max-w-[120px]">
                   {currentPlayerInAnimation.name}
                 </span>
-                <span className="text-[8px] sm:text-[9px] text-slate-400 font-medium">Girando...</span>
+                <span className="text-[10px] sm:text-xs text-slate-400 font-bold">Girando...</span>
               </motion.div>
             ) : roomData.currentResult ? (
               <motion.div
@@ -1392,39 +1332,39 @@ export default function Room({
                 {/* MENSAJE PERSONALIZADO SEGÚN QUIÉN SOS */}
                 {isMeActor ? (
                   <div className="flex flex-col items-center">
-                    <span className="px-1.5 py-0.2 bg-rose-500/30 text-rose-300 text-[8px] font-black uppercase rounded-full border border-rose-500/50 mb-0.5 animate-pulse">
+                    <span className="px-2 py-0.5 bg-rose-500/30 text-rose-300 text-[9px] sm:text-[10px] font-black uppercase rounded-full border border-rose-500/50 mb-0.5 animate-pulse">
                       🔥 ¡TE TOCA!
                     </span>
-                    <h2 className="text-xs sm:text-sm md:text-base font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] truncate max-w-[100px]">
+                    <h2 className="text-sm sm:text-base md:text-lg font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] truncate max-w-[110px] sm:max-w-[130px]">
                       {roomData.currentResult.name}
                     </h2>
                     {roomData.currentPair && (
-                      <span className="text-[8px] sm:text-[9px] text-pink-300 font-bold mt-0.5 truncate max-w-[100px]">
+                      <span className="text-[9px] sm:text-[10px] text-pink-300 font-bold mt-0.5 truncate max-w-[110px]">
                         Con: {roomData.currentPair.name}
                       </span>
                     )}
                   </div>
                 ) : isMeTarget ? (
                   <div className="flex flex-col items-center">
-                    <span className="px-1.5 py-0.2 bg-purple-500/30 text-purple-300 text-[8px] font-black uppercase rounded-full border border-purple-500/50 mb-0.5 animate-pulse">
+                    <span className="px-2 py-0.5 bg-purple-500/30 text-purple-300 text-[9px] sm:text-[10px] font-black uppercase rounded-full border border-purple-500/50 mb-0.5 animate-pulse">
                       💋 ¡CON VOS!
                     </span>
-                    <h2 className="text-xs sm:text-sm font-black text-purple-200 truncate max-w-[100px]">
+                    <h2 className="text-xs sm:text-sm md:text-base font-black text-purple-200 truncate max-w-[110px] sm:max-w-[130px]">
                       {roomData.currentResult.name} ⚡ Vos
                     </h2>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center">
-                    <span className="text-[8px] uppercase font-bold tracking-widest text-rose-400 mb-0.5 flex items-center gap-0.5">
-                      <Sparkles className="w-2 h-2" /> ¡Le Toca!
+                    <span className="text-[9px] sm:text-[10px] uppercase font-black tracking-widest text-rose-400 mb-0.5 flex items-center gap-0.5">
+                      <Sparkles className="w-2.5 h-2.5" /> ¡Le Toca!
                     </span>
-                    <h2 className="text-xs sm:text-sm md:text-base font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] truncate max-w-[100px]">
+                    <h2 className="text-sm sm:text-base md:text-lg font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] truncate max-w-[110px] sm:max-w-[130px]">
                       {roomData.currentResult.name}
                     </h2>
                     {roomData.currentPair && (
-                      <div className="mt-0.5 pt-0.5 border-t border-slate-800 flex items-center gap-0.5 text-[8px] sm:text-[9px] text-purple-300 font-medium">
-                        <HeartHandshake className="w-2 h-2 text-pink-400 flex-shrink-0" />
-                        <span className="truncate max-w-[90px]">Con: {roomData.currentPair.name}</span>
+                      <div className="mt-0.5 pt-0.5 border-t border-slate-800 flex items-center gap-1 text-[9px] sm:text-[10px] text-purple-300 font-bold">
+                        <HeartHandshake className="w-3 h-3 text-pink-400 flex-shrink-0" />
+                        <span className="truncate max-w-[100px]">Con: {roomData.currentPair.name}</span>
                       </div>
                     )}
                   </div>
@@ -1432,9 +1372,9 @@ export default function Room({
               </motion.div>
             ) : (
               <div className="flex flex-col items-center text-slate-400">
-                <Flame className="w-6 h-6 text-rose-500/60 mb-0.5" />
-                <span className="text-xs font-semibold text-slate-300">Ruleta</span>
-                <span className="text-[8px] text-slate-500">Tocá girar</span>
+                <Flame className="w-7 h-7 sm:w-8 sm:h-8 text-rose-500/80 mb-0.5 animate-pulse" />
+                <span className="text-xs sm:text-sm font-bold text-slate-200">Ruleta</span>
+                <span className="text-[9px] sm:text-[10px] text-slate-500">Tocá girar</span>
               </div>
             )}
           </div>
@@ -1443,7 +1383,7 @@ export default function Room({
           {playersList.map((player, idx) => {
             const total = playersList.length;
             const angleRad = ((idx * (360 / Math.max(1, total))) - 90) * (Math.PI / 180);
-            const radiusPercent = 42; // Distancia radial responsiva en %
+            const radiusPercent = 43; // Distancia radial en %
             const leftPercent = 50 + radiusPercent * Math.cos(angleRad);
             const topPercent = 50 + radiusPercent * Math.sin(angleRad);
 
@@ -1468,24 +1408,24 @@ export default function Room({
                 }`}
               >
                 <div
-                  className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border text-[10px] sm:text-xs font-bold flex items-center gap-1 shadow-md whitespace-nowrap transition-all duration-150 ${
+                  className={`px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full border-2 text-xs sm:text-sm font-black flex items-center gap-1.5 shadow-lg whitespace-nowrap transition-all duration-150 ${
                     isSpinningSelected
-                      ? 'bg-amber-500 text-slate-950 border-amber-300 shadow-[0_0_20px_#f59e0b] scale-125 font-black ring-2 ring-amber-400 z-30'
+                      ? 'bg-amber-500 text-slate-950 border-amber-200 shadow-[0_0_25px_#f59e0b] scale-125 font-black ring-2 ring-amber-400 z-30'
                       : isResultWinner
-                      ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white border-rose-300 shadow-[0_0_20px_rgba(244,63,94,0.9)] ring-2 ring-rose-400 scale-115 font-black z-25 animate-pulse'
+                      ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white border-rose-200 shadow-[0_0_25px_rgba(244,63,94,1)] ring-2 ring-rose-400 scale-120 font-black z-25 animate-pulse'
                       : isResultPair
-                      ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white border-purple-300 shadow-[0_0_20px_rgba(168,85,247,0.9)] ring-2 ring-purple-400 scale-110 font-black z-25 animate-pulse'
+                      ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white border-purple-200 shadow-[0_0_25px_rgba(168,85,247,1)] ring-2 ring-purple-400 scale-115 font-black z-25 animate-pulse'
                       : isTarget1
-                      ? 'bg-rose-950 border-rose-500 text-rose-300 ring-1 ring-rose-500 shadow-md scale-105'
+                      ? 'bg-rose-950 border-rose-500 text-rose-200 ring-2 ring-rose-500 shadow-md scale-105'
                       : isTarget2
-                      ? 'bg-purple-950 border-purple-500 text-purple-300 ring-1 ring-purple-500 shadow-md scale-105'
+                      ? 'bg-purple-950 border-purple-500 text-purple-200 ring-2 ring-purple-500 shadow-md scale-105'
                       : isMe
-                      ? 'bg-slate-900/95 border-emerald-500/60 text-emerald-300 shadow-sm'
-                      : 'bg-slate-900/90 border-slate-700/80 text-slate-200 hover:border-slate-500'
+                      ? 'bg-slate-900/95 border-emerald-500 text-emerald-300 shadow-md ring-1 ring-emerald-500/50'
+                      : 'bg-slate-900/90 border-slate-700/80 text-slate-100 hover:border-slate-500'
                   }`}
                 >
                   {isSpinningSelected ? (
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-950 animate-ping" />
+                    <span className="w-2 h-2 rounded-full bg-slate-950 animate-ping" />
                   ) : isResultWinner ? (
                     <span>🔥</span>
                   ) : isResultPair ? (
@@ -1495,12 +1435,12 @@ export default function Room({
                   ) : isTarget2 ? (
                     <span>💋</span>
                   ) : (
-                    <span className={`w-1.5 h-1.5 rounded-full ${isMe ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+                    <span className={`w-2 h-2 rounded-full ${isMe ? 'bg-emerald-400' : 'bg-slate-500'}`} />
                   )}
 
-                  <span className="max-w-[65px] sm:max-w-[85px] truncate">{player.name}</span>
+                  <span className="max-w-[75px] sm:max-w-[100px] truncate">{player.name}</span>
                   {isMe && !isSpinningSelected && !isResultWinner && !isResultPair && (
-                    <span className="text-[8px] text-emerald-400 font-extrabold">(Vos)</span>
+                    <span className="text-[9px] text-emerald-400 font-extrabold">(Vos)</span>
                   )}
                 </div>
               </div>
@@ -1508,44 +1448,44 @@ export default function Room({
           })}
         </div>
 
-        {/* Tarjeta del Reto / Verdad con Diseño Cautivante */}
+        {/* Tarjeta del Reto / Verdad con Diseño Cautivante y Grande */}
         <AnimatePresence>
           {currentChallenge && !roomData.isSpinning && (
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              className={`w-full glass-card p-2.5 sm:p-4 rounded-xl sm:rounded-2xl my-1 text-center border shadow-xl flex-shrink-0 max-h-32 sm:max-h-36 overflow-y-auto ${
+              className={`w-full glass-card p-3 sm:p-4 rounded-2xl my-1 text-center border-2 shadow-2xl flex-shrink-0 max-h-36 sm:max-h-40 overflow-y-auto ${
                 currentChallenge.tipo === 'reto'
-                  ? 'border-rose-500/50 shadow-[0_0_25px_rgba(244,63,94,0.3)] bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-rose-950/50'
-                  : 'border-fuchsia-500/50 shadow-[0_0_25px_rgba(217,70,239,0.3)] bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-purple-950/50'
+                  ? 'border-rose-500/60 shadow-[0_0_30px_rgba(244,63,94,0.35)] bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-rose-950/60'
+                  : 'border-fuchsia-500/60 shadow-[0_0_30px_rgba(217,70,239,0.35)] bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-purple-950/60'
               }`}
             >
               <div className="flex items-center justify-center gap-2 mb-1">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 border border-slate-700 text-slate-300">
+                <span className="px-3 py-0.5 rounded-full text-xs font-black bg-slate-800 border border-slate-700 text-slate-200 uppercase">
                   {currentSpice === 1 ? '🌶️ Suave' : currentSpice === 2 ? '🔥 Caliente' : currentSpice === 3 ? '💀 Fuego' : '💀🔥 Extremo'}
                 </span>
               </div>
 
-              <p className="text-base sm:text-xl md:text-2xl font-bold text-white font-fun tracking-wide leading-snug sm:leading-relaxed drop-shadow-md px-1.5 my-1">
+              <p className="text-lg sm:text-2xl md:text-3xl font-extrabold text-white font-fun tracking-wide leading-tight sm:leading-snug drop-shadow-md px-1 my-1">
                 "{currentChallenge.texto}"
               </p>
 
               {/* COUNTDOWN DE 10 SEGUNDOS CON BARRA ARDIENTE */}
-              <div className="mt-1.5 pt-1.5 border-t border-slate-800/80 flex items-center justify-center gap-2">
+              <div className="mt-2 pt-1.5 border-t border-slate-800/80 flex items-center justify-center gap-2">
                 {countdown > 0 ? (
-                  <span className="px-2.5 py-0.5 bg-gradient-to-r from-amber-500/25 via-rose-500/25 to-purple-500/25 border border-amber-500/50 rounded-full text-[10px] sm:text-xs font-black text-amber-300 flex items-center gap-1 shadow-[0_0_12px_rgba(245,158,11,0.5)] animate-pulse">
-                    <Clock className="w-3 h-3 text-amber-300 animate-spin" />
+                  <span className="px-3 py-0.5 bg-gradient-to-r from-amber-500/25 via-rose-500/25 to-purple-500/25 border border-amber-500/50 rounded-full text-xs font-black text-amber-300 flex items-center gap-1 shadow-[0_0_12px_rgba(245,158,11,0.5)] animate-pulse">
+                    <Clock className="w-3.5 h-3.5 text-amber-300 animate-spin" />
                     ⏱️ TIEMPO: {countdown}s
                   </span>
                 ) : (
-                  <span className="px-2.5 py-0.5 bg-slate-800/90 border border-slate-700 text-slate-400 rounded-full text-[10px] sm:text-xs font-bold flex items-center gap-1">
+                  <span className="px-3 py-0.5 bg-slate-800/90 border border-slate-700 text-slate-400 rounded-full text-xs font-bold flex items-center gap-1">
                     ⏰ ¡TIEMPO CUMPLIDO!
                   </span>
                 )}
 
                 {countdown > 0 && (
-                  <div className="w-24 sm:w-36 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700/60">
+                  <div className="w-28 sm:w-40 h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700/60">
                     <motion.div
                       animate={{ width: `${Math.max(0, (countdown / 10) * 100)}%` }}
                       transition={{ duration: 0.9, ease: "linear" }}
@@ -1624,13 +1564,13 @@ export default function Room({
           </motion.div>
         )}
 
-        {/* Botón de Giro */}
+        {/* Botón de Giro GRANDE Y PROMINENTE */}
         <button
           onClick={handleSpin}
           disabled={roomData.isSpinning || playersList.length < 2}
-          className="w-full py-2.5 sm:py-3.5 bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 hover:from-rose-600 hover:to-purple-700 text-white font-black text-sm sm:text-base md:text-lg rounded-xl sm:rounded-2xl shadow-[0_0_20px_rgba(244,63,94,0.4)] transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 uppercase tracking-wider flex-shrink-0"
+          className="w-full py-3.5 sm:py-4 px-6 bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 hover:from-rose-600 hover:to-purple-700 text-white font-black text-base sm:text-lg md:text-xl rounded-2xl shadow-[0_0_25px_rgba(244,63,94,0.5)] transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 uppercase tracking-wider flex-shrink-0"
         >
-          <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-white" />
+          <Zap className="w-5 h-5 sm:w-6 sm:h-6 fill-white" />
           {roomData.isSpinning ? 'Eligiendo víctimas...' : 'Girar Ruleta'}
         </button>
       </main>
