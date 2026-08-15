@@ -1385,31 +1385,31 @@ export default function Room({
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              className={`w-full glass-card p-2 sm:p-3 rounded-xl sm:rounded-2xl my-0.5 sm:my-1 text-center border shadow-xl flex-shrink-0 max-h-24 sm:max-h-28 overflow-y-auto ${
+              className={`w-full glass-card p-2.5 sm:p-4 rounded-xl sm:rounded-2xl my-1 text-center border shadow-xl flex-shrink-0 max-h-32 sm:max-h-36 overflow-y-auto ${
                 currentChallenge.tipo === 'reto'
-                  ? 'border-rose-500/40 shadow-[0_0_20px_rgba(244,63,94,0.2)] bg-gradient-to-b from-slate-900/90 to-rose-950/40'
-                  : 'border-fuchsia-500/40 shadow-[0_0_20px_rgba(217,70,239,0.2)] bg-gradient-to-b from-slate-900/90 to-purple-950/40'
+                  ? 'border-rose-500/50 shadow-[0_0_25px_rgba(244,63,94,0.3)] bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-rose-950/50'
+                  : 'border-fuchsia-500/50 shadow-[0_0_25px_rgba(217,70,239,0.3)] bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-purple-950/50'
               }`}
             >
-              <div className="flex items-center justify-center gap-2 mb-0.5">
-                <span className="px-2 py-0.2 rounded-full text-[9px] font-bold bg-slate-800 border border-slate-700 text-slate-300">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 border border-slate-700 text-slate-300">
                   {currentSpice === 1 ? '🌶️ Suave' : currentSpice === 2 ? '🔥 Caliente' : currentSpice === 3 ? '💀 Fuego' : '💀🔥 Extremo'}
                 </span>
               </div>
 
-              <p className="text-xs sm:text-sm md:text-base font-semibold text-slate-100 font-serif italic leading-snug">
+              <p className="text-base sm:text-xl md:text-2xl font-bold text-white font-serif italic leading-snug sm:leading-relaxed drop-shadow-md px-1 my-1">
                 "{currentChallenge.texto}"
               </p>
 
               {/* COUNTDOWN DE 10 SEGUNDOS CON BARRA ARDIENTE */}
-              <div className="mt-1 pt-1 border-t border-slate-800/80 flex items-center justify-center gap-2">
+              <div className="mt-1.5 pt-1.5 border-t border-slate-800/80 flex items-center justify-center gap-2">
                 {countdown > 0 ? (
-                  <span className="px-2 py-0.2 bg-gradient-to-r from-amber-500/25 via-rose-500/25 to-purple-500/25 border border-amber-500/50 rounded-full text-[9px] sm:text-[10px] font-black text-amber-300 flex items-center gap-1 shadow-[0_0_12px_rgba(245,158,11,0.5)] animate-pulse">
-                    <Clock className="w-2.5 h-2.5 text-amber-300 animate-spin" />
+                  <span className="px-2.5 py-0.5 bg-gradient-to-r from-amber-500/25 via-rose-500/25 to-purple-500/25 border border-amber-500/50 rounded-full text-[10px] sm:text-xs font-black text-amber-300 flex items-center gap-1 shadow-[0_0_12px_rgba(245,158,11,0.5)] animate-pulse">
+                    <Clock className="w-3 h-3 text-amber-300 animate-spin" />
                     ⏱️ TIEMPO: {countdown}s
                   </span>
                 ) : (
-                  <span className="px-2 py-0.2 bg-slate-800/90 border border-slate-700 text-slate-400 rounded-full text-[9px] sm:text-[10px] font-bold flex items-center gap-1">
+                  <span className="px-2.5 py-0.5 bg-slate-800/90 border border-slate-700 text-slate-400 rounded-full text-[10px] sm:text-xs font-bold flex items-center gap-1">
                     ⏰ ¡TIEMPO CUMPLIDO!
                   </span>
                 )}
