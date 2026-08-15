@@ -19,7 +19,7 @@ import {
   Plus, 
   UserCheck,
   TrendingUp,
-  Skull
+  Trash2
 } from 'lucide-react';
 
 // Generador de audio sintetizado Web Audio API
@@ -110,7 +110,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
     return formatted;
   };
 
-  // Cambiar Nivel de Picante (Sincronizado para todos)
+  // Cambiar Nivel de Picante (Host o Papito)
   const handleChangeSpiceLevel = async (newLevel) => {
     const roomRef = doc(db, 'rooms', roomId);
     await updateDoc(roomRef, { spiceLevel: newLevel });
@@ -126,7 +126,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
     const roomRef = doc(db, 'rooms', roomId);
     const newRoundCount = (roomData.roundCount || 0) + 1;
 
-    // Aumento automático de nivel de picante cada 8 rondas (si no se cambió manualmente al máximo)
+    // Aumento automático de nivel de picante cada 8 rondas
     let currentSpice = roomData.spiceLevel || 1;
     if (newRoundCount >= 16 && currentSpice < 3) {
       currentSpice = 3;
@@ -227,6 +227,21 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
     await updateDoc(roomRef, { nextTarget: null, nextPair: null });
   };
 
+  // ELIMINAR JUGADOR (Host o Papito)
+  const handleDeletePlayer = async (playerToDeleteId) => {
+    if (!isHost && !canCheat) return;
+    if (confirm('¿Seguro que querés eliminar a este jugador de la sala?')) {
+      const roomRef = doc(db, 'rooms', roomId);
+      const updatedPlayers = (roomData.players || []).filter(p => p.id !== playerToDeleteId);
+      
+      const updatePayload = { players: updatedPlayers };
+      if (roomData.nextTarget === playerToDeleteId) updatePayload.nextTarget = null;
+      if (roomData.nextPair === playerToDeleteId) updatePayload.nextPair = null;
+
+      await updateDoc(roomRef, updatePayload);
+    }
+  };
+
   // Añadir un nuevo jugador manualmente desde la sala
   const handleAddExtraPlayer = async (e) => {
     e.preventDefault();
@@ -298,6 +313,19 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
   const target1Player = playersList.find(p => p.id === roomData.nextTarget);
   const target2Player = playersList.find(p => p.id === roomData.nextPair);
 
+  // Identificación personalizada de la interacción en pantalla
+  const isMeActor = roomData.currentResult && (
+    roomData.currentResult.id === playerId || 
+    roomData.currentResult.claimedBy === playerId ||
+    roomData.currentResult.name === playerName
+  );
+
+  const isMeTarget = roomData.currentPair && (
+    roomData.currentPair.id === playerId || 
+    roomData.currentPair.claimedBy === playerId ||
+    roomData.currentPair.name === playerName
+  );
+
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-between p-4 relative pb-12 overflow-x-hidden">
       {/* Fondos */}
@@ -337,7 +365,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
         )}
       </header>
 
-      {/* BARRA DE NIVEL DE PICANTE */}
+      {/* BARRA DE NIVEL DE PICANTE (Host y Papito pueden cambiarla silenciosamente) */}
       <div className="w-full max-w-lg z-10 my-3">
         <div className="p-2 bg-slate-900/90 border border-slate-800 rounded-2xl flex items-center justify-between shadow-lg backdrop-blur-md">
           <button
@@ -380,7 +408,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
           </button>
         </div>
 
-        {/* Indicador de Ronda y Progreso */}
+        {/* Indicador de Ronda */}
         <div className="flex justify-between items-center px-2 mt-1.5 text-[10px] text-slate-500 font-medium">
           <span className="flex items-center gap-1">
             <TrendingUp className="w-3 h-3 text-rose-500" /> Ronda #{roomData.roundCount || 0}
@@ -430,17 +458,44 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
                 transition={{ type: "spring", stiffness: 280, damping: 16 }}
                 className="flex flex-col items-center w-full px-2"
               >
-                <span className="text-[11px] uppercase font-bold tracking-widest text-rose-400 mb-1 flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5" /> ¡Le Toca A!
-                </span>
-                <h2 className="text-2xl sm:text-3xl font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] truncate max-w-full">
-                  {roomData.currentResult.name}
-                </h2>
-
-                {roomData.currentPair && (
-                  <div className="mt-2 pt-2 border-t border-slate-800 flex items-center gap-1.5 text-xs text-purple-300 font-medium">
-                    <HeartHandshake className="w-3.5 h-3.5 text-pink-400 flex-shrink-0" />
-                    <span className="truncate">Con: <strong className="text-pink-300">{roomData.currentPair.name}</strong></span>
+                {/* MENSAJE PERSONALIZADO SEGÚN QUIÉN SOS */}
+                {isMeActor ? (
+                  <div className="flex flex-col items-center">
+                    <span className="px-2.5 py-0.5 bg-rose-500/30 text-rose-300 text-[11px] font-black uppercase rounded-full border border-rose-500/50 mb-1 animate-pulse">
+                      🔥 ¡TE TOCA A VOS!
+                    </span>
+                    <h2 className="text-2xl sm:text-3xl font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] truncate max-w-full">
+                      {roomData.currentResult.name}
+                    </h2>
+                    {roomData.currentPair && (
+                      <span className="text-xs text-pink-300 font-bold mt-1">
+                        Hacé el reto con: <strong className="underline">{roomData.currentPair.name}</strong>
+                      </span>
+                    )}
+                  </div>
+                ) : isMeTarget ? (
+                  <div className="flex flex-col items-center">
+                    <span className="px-2.5 py-0.5 bg-purple-500/30 text-purple-300 text-[11px] font-black uppercase rounded-full border border-purple-500/50 mb-1 animate-pulse">
+                      💋 ¡LE TOCÓ A {roomData.currentResult.name.toUpperCase()} HACER CON VOS!
+                    </span>
+                    <h2 className="text-xl sm:text-2xl font-black text-purple-200 truncate max-w-full">
+                      {roomData.currentResult.name} ⚡ Vos
+                    </h2>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center">
+                    <span className="text-[11px] uppercase font-bold tracking-widest text-rose-400 mb-1 flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5" /> ¡Le Toca A!
+                    </span>
+                    <h2 className="text-2xl sm:text-3xl font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] truncate max-w-full">
+                      {roomData.currentResult.name}
+                    </h2>
+                    {roomData.currentPair && (
+                      <div className="mt-2 pt-2 border-t border-slate-800 flex items-center gap-1.5 text-xs text-purple-300 font-medium">
+                        <HeartHandshake className="w-3.5 h-3.5 text-pink-400 flex-shrink-0" />
+                        <span className="truncate">Con: <strong className="text-pink-300">{roomData.currentPair.name}</strong></span>
+                      </div>
+                    )}
                   </div>
                 )}
               </motion.div>
@@ -579,20 +634,38 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
                   </span>
                 </div>
 
-                {canCheat && (
-                  <div>
-                    {isTarget1 && (
-                      <span className="px-1.5 py-0.5 bg-rose-500 text-white text-[10px] font-black rounded-md">
-                        🎯 1º
-                      </span>
-                    )}
-                    {isTarget2 && (
-                      <span className="px-1.5 py-0.5 bg-purple-500 text-white text-[10px] font-black rounded-md">
-                        💋 2º
-                      </span>
-                    )}
-                  </div>
-                )}
+                <div className="flex items-center gap-1">
+                  {/* Badges de trampa (Solo Papito) */}
+                  {canCheat && (
+                    <>
+                      {isTarget1 && (
+                        <span className="px-1.5 py-0.5 bg-rose-500 text-white text-[10px] font-black rounded-md">
+                          🎯 1º
+                        </span>
+                      )}
+                      {isTarget2 && (
+                        <span className="px-1.5 py-0.5 bg-purple-500 text-white text-[10px] font-black rounded-md">
+                          💋 2º
+                        </span>
+                      )}
+                    </>
+                  )}
+
+                  {/* Botón eliminar jugador (Host o Papito) */}
+                  {(isHost || canCheat) && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeletePlayer(player.id);
+                      }}
+                      className="p-1 text-slate-500 hover:text-rose-400 transition"
+                      title="Eliminar jugador"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -682,6 +755,27 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
                 >
                   ✕
                 </button>
+              </div>
+
+              {/* Gestión de Jugadores (Eliminar) */}
+              <div>
+                <h4 className="text-sm font-semibold text-slate-200 mb-2">Eliminar Jugadores</h4>
+                <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                  {playersList.map((p) => (
+                    <div
+                      key={p.id}
+                      className="p-2 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between text-xs"
+                    >
+                      <span>{p.name}</span>
+                      <button
+                        onClick={() => handleDeletePlayer(p.id)}
+                        className="p-1 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Eliminar
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div>

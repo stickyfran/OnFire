@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import Room from './components/Room';
 import { ALL_CHALLENGES } from './data/challenges';
@@ -12,7 +12,8 @@ import {
   Plus, 
   X, 
   ArrowRight,
-  CheckCircle2
+  CheckCircle2,
+  UserCheck
 } from 'lucide-react';
 
 // Generador de ID único persistente en LocalStorage
@@ -45,7 +46,7 @@ export default function App() {
   const [stepJoin, setStepJoin] = useState('input_code'); // 'input_code' | 'choose_name'
   const [roomDataCache, setRoomDataCache] = useState(null);
 
-  // Detectar si el nombre tiene la palabra clave "Papito"
+  // Detectar si el nombre tiene la palabra clave secreta "Papito"
   const processName = (input) => {
     const trimmed = input.trim();
     const isSecret = trimmed.toLowerCase().startsWith('papito');
@@ -127,7 +128,7 @@ export default function App() {
         currentChallenge: null,
         nextTarget: null,
         nextPair: null,
-        spiceLevel: 1, // Nivel 1: Suave/Previa, Nivel 2: Caliente, Nivel 3: Fuego
+        spiceLevel: 1,
         roundCount: 0,
         challenges: ALL_CHALLENGES,
         players: initialPlayers
@@ -136,7 +137,7 @@ export default function App() {
       await setDoc(roomRef, initialData);
       setCurrentRoom(newRoomCode);
       setIsHost(true);
-      setCanCheat(isSecret); // Solo si empieza con "Papito"
+      setCanCheat(isSecret);
     } catch (err) {
       console.error(err);
       setErrorMsg('Error conectando con Firebase.');
@@ -145,7 +146,7 @@ export default function App() {
     }
   };
 
-  // 2. BUSCAR SALA PARA UNIRSE
+  // 2. BUSCAR SALA PARA UNIRSE (SIEMPRE PREGUNTAR QUIÉN SOS)
   const handleCheckRoom = async (e) => {
     e.preventDefault();
     const code = roomCodeInput.trim().toUpperCase();
@@ -170,17 +171,7 @@ export default function App() {
       const data = roomSnap.data();
       setRoomDataCache(data);
 
-      const existingPlayer = data.players?.find(p => p.claimedBy === playerId || p.id === playerId);
-      if (existingPlayer) {
-        const { isSecret } = processName(rawInputName || existingPlayer.name);
-        setDisplayName(existingPlayer.name);
-        setCurrentRoom(code);
-        setIsHost(data.hostId === playerId);
-        setCanCheat(isSecret);
-        setLoading(false);
-        return;
-      }
-
+      // SIEMPRE mostrar la pantalla de selección de nombre para que elija quién es
       const unclaimed = data.players?.filter(p => !p.isClaimed) || [];
       setAvailableSlots(unclaimed);
       setStepJoin('choose_name');
@@ -194,15 +185,15 @@ export default function App() {
 
   // 3. ELEGIR NOMBRE DISPONIBLE O INGRESAR UNO NUEVO
   const handleClaimOrJoin = async (selectedSlotName = null) => {
-    const finalName = selectedSlotName || rawInputName.trim();
+    const finalRawName = selectedSlotName || rawInputName.trim();
 
-    if (!finalName) {
-      setErrorMsg('Elegí un nombre o escribí el tuyo.');
+    if (!finalRawName) {
+      setErrorMsg('Elegí un nombre de la lista o escribí el tuyo.');
       return;
     }
 
-    const { cleanName, isSecret } = processName(rawInputName || finalName);
-    localStorage.setItem('onfire_raw_name', rawInputName || finalName);
+    const { cleanName, isSecret } = processName(finalRawName);
+    localStorage.setItem('onfire_raw_name', finalRawName);
     localStorage.setItem('onfire_player_name', cleanName);
     setDisplayName(cleanName);
 
@@ -223,6 +214,7 @@ export default function App() {
       const data = roomSnap.data();
       let updatedPlayers = [...(data.players || [])];
 
+      // Si seleccionó un nombre de la lista disponible
       if (selectedSlotName) {
         const slotIndex = updatedPlayers.findIndex(p => p.name === selectedSlotName && !p.isClaimed);
         if (slotIndex !== -1) {
@@ -243,6 +235,7 @@ export default function App() {
           });
         }
       } else {
+        // Escribió su propio nombre
         updatedPlayers.push({
           id: playerId,
           name: cleanName,
@@ -317,7 +310,7 @@ export default function App() {
             </div>
           )}
 
-          {/* VISTA 1: CREAR O UNIRSE A SALA */}
+          {/* VISTA 1: CREAR O BUSCAR SALA */}
           {stepJoin === 'input_code' ? (
             <div className="space-y-5">
               {/* Tu Nombre */}
@@ -431,26 +424,28 @@ export default function App() {
               </div>
             </div>
           ) : (
-            /* VISTA 2: ELEGIR NOMBRE DISPONIBLE O ESCRIBIR */
+            /* VISTA 2: SIEMPRE PREGUNTAR QUIÉN SOS */
             <div className="space-y-5 animate-in fade-in duration-200">
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div>
-                  <h3 className="text-sm font-bold text-white">Sala {roomCodeInput}</h3>
-                  <p className="text-xs text-slate-400">Elegí quién sos o escribí tu nombre:</p>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                    <UserCheck className="w-4 h-4 text-rose-500" /> ¿Quién sos en esta sala?
+                  </h3>
+                  <p className="text-xs text-slate-400">Sala: <strong className="text-rose-400">{roomCodeInput}</strong></p>
                 </div>
                 <button
                   onClick={() => setStepJoin('input_code')}
                   className="text-xs text-slate-500 hover:text-slate-300"
                 >
-                  Cambiar sala
+                  Cambiar código
                 </button>
               </div>
 
-              {/* Nombres disponibles precargados */}
+              {/* Nombres disponibles precargados (1 toque) */}
               {availableSlots.length > 0 ? (
                 <div>
                   <label className="block text-xs font-semibold text-pink-400 uppercase tracking-wider mb-2">
-                    Nombres Disponibles (1 toque):
+                    Elegí tu nombre disponible (1 toque):
                   </label>
                   <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
                     {availableSlots.map((slot) => (
@@ -467,22 +462,23 @@ export default function App() {
                 </div>
               ) : (
                 <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 text-xs text-slate-400 text-center">
-                  No hay nombres precargados disponibles. Escribí tu nombre abajo:
+                  Todos los nombres precargados ya fueron tomados. Escribí tu nombre abajo:
                 </div>
               )}
 
               {/* Escribir nombre manual */}
               <div className="pt-2 border-t border-slate-800/80">
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  O escribí otro nombre:
+                  O escribí tu nombre acá:
                 </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     maxLength={20}
-                    placeholder="Tu nombre..."
+                    placeholder="Tu nombre o apodo..."
                     value={rawInputName}
                     onChange={(e) => setRawInputName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleClaimOrJoin(null))}
                     className="flex-1 px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-rose-500"
                   />
                   <button
