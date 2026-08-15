@@ -25,6 +25,9 @@ import {
   Download
 } from 'lucide-react';
 
+import AvatarPicker from './components/AvatarPicker';
+import { getRandomAvatar, AVATARS } from './data/avatars';
+
 // Generador de ID único persistente en LocalStorage
 const getOrCreatePlayerId = () => {
   let pid = localStorage.getItem('onfire_player_id');
@@ -40,6 +43,9 @@ const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '
 export default function App() {
   const [playerId] = useState(getOrCreatePlayerId);
   const [rawInputName, setRawInputName] = useState(() => localStorage.getItem('onfire_raw_name') || '');
+  const [selectedAvatar, setSelectedAvatar] = useState(() => {
+    return localStorage.getItem('onfire_player_avatar') || getRandomAvatar();
+  });
   const [roomCodeInput, setRoomCodeInput] = useState('');
   const [currentRoom, setCurrentRoom] = useState(null);
   const [isHost, setIsHost] = useState(false);
@@ -48,6 +54,11 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [updatingVersion, setUpdatingVersion] = useState(null);
+
+  const handleSelectAvatar = (avatar) => {
+    setSelectedAvatar(avatar);
+    localStorage.setItem('onfire_player_avatar', avatar);
+  };
 
   // Nombres precargados por el anfitrión
   const [precreatedNames, setPrecreatedNames] = useState([]);
@@ -363,6 +374,7 @@ export default function App() {
         {
           id: playerId,
           name: cleanName,
+          avatar: selectedAvatar || '🔥',
           isClaimed: true,
           claimedBy: playerId,
           joinedAt: new Date().toISOString()
@@ -373,6 +385,7 @@ export default function App() {
         initialPlayers.push({
           id: `slot_${Date.now()}_${idx}`,
           name: name,
+          avatar: AVATARS[(idx + 1) % AVATARS.length],
           isClaimed: false,
           claimedBy: null
         });
@@ -399,6 +412,7 @@ export default function App() {
         roomCode: newRoomCode,
         rawName: rawInputName,
         playerName: cleanName,
+        playerAvatar: selectedAvatar || '🔥',
         hostName: cleanName,
         isHost: true,
         canCheat: isSecret,
@@ -455,28 +469,31 @@ export default function App() {
     await checkRoomByCode(roomCodeInput);
   };
 
-  // Avanzar del Paso 1 (Tu Nombre) al Paso 2 (Merge/Identidad)
+  // Avanzar del Paso 1 (Nombre) al Paso 2 (Identidad/Merge) o entrar directo
   const handleNextFromJoinName = (e) => {
-    if (e) e.preventDefault();
+    e.preventDefault();
     if (!rawInputName.trim()) {
-      setErrorMsg('Por favor ingresá tu nombre o apodo.');
+      setErrorMsg('Por favor poné tu nombre.');
       return;
     }
-    setErrorMsg('');
-    const { cleanName } = processName(rawInputName);
 
-    if (allRoomPlayers.length > 0) {
-      const match = allRoomPlayers.find(
-        p => p.name.trim().toLowerCase() === cleanName.trim().toLowerCase()
-      );
-      if (match) {
-        setSelectedMergeSlot(match.name);
-      } else {
-        setSelectedMergeSlot(null);
-      }
+    const { cleanName } = processName(rawInputName);
+    setErrorMsg('');
+
+    // Buscar si hay coincidencia exacta de nombre en la lista de jugadores precargados
+    const exactMatch = allRoomPlayers.find(
+      p => p.name.trim().toLowerCase() === cleanName.trim().toLowerCase()
+    );
+
+    if (exactMatch) {
+      setSelectedMergeSlot(exactMatch.name);
+    }
+
+    // Si hay miembros ya presentes en la sala, pasar al paso de elegir identidad/merge
+    if (allRoomPlayers && allRoomPlayers.length > 0) {
       setStepJoin('join_merge');
     } else {
-      // Si no hay jugadores precargados, unirse directamente
+      // Si la sala no tiene slots precargados, unirse directamente
       handleClaimOrJoin(null);
     }
   };
@@ -523,6 +540,7 @@ export default function App() {
             ...updatedPlayers[slotIndex],
             id: playerId,
             name: selectedSlotName.trim(),
+            avatar: selectedAvatar || updatedPlayers[slotIndex].avatar || '🔥',
             isClaimed: true,
             claimedBy: playerId,
             joinedAt: new Date().toISOString()
@@ -535,6 +553,7 @@ export default function App() {
           updatedPlayers.push({
             id: playerId,
             name: cleanName,
+            avatar: selectedAvatar || '🔥',
             isClaimed: true,
             claimedBy: playerId,
             joinedAt: new Date().toISOString()
@@ -550,6 +569,7 @@ export default function App() {
             ...updatedPlayers[existingIndex],
             id: playerId,
             name: cleanName,
+            avatar: selectedAvatar || updatedPlayers[existingIndex].avatar || '🔥',
             isClaimed: true,
             claimedBy: playerId,
             joinedAt: new Date().toISOString()
@@ -560,6 +580,7 @@ export default function App() {
           updatedPlayers.push({
             id: playerId,
             name: cleanName,
+            avatar: selectedAvatar || '🔥',
             isClaimed: true,
             claimedBy: playerId,
             joinedAt: new Date().toISOString()
@@ -946,7 +967,7 @@ export default function App() {
           {/* ========================================================== */}
           {stepJoin === 'input_code' ? (
             <div className="space-y-6">
-              {/* Tu Nombre */}
+              {/* Tu Nombre con Selector de Avatar */}
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <label className="block text-sm font-bold uppercase tracking-wider text-slate-200">
@@ -958,19 +979,31 @@ export default function App() {
                     </span>
                   )}
                 </div>
-                <input
-                  type="text"
-                  maxLength={25}
-                  placeholder="Ej: Fran, Sofi, Lucas..."
-                  value={rawInputName}
-                  onChange={(e) => setRawInputName(e.target.value)}
-                  className={`w-full px-4 py-3.5 bg-slate-900/90 border rounded-2xl text-white placeholder-slate-500 focus:outline-none transition text-base font-semibold ${
-                    isSecret 
-                      ? 'border-rose-500 ring-2 ring-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.3)]' 
-                      : 'border-slate-700 focus:border-rose-500'
-                  }`}
-                />
+                <div className="flex items-center gap-2">
+                  <div className="w-13 h-13 sm:w-14 sm:h-14 bg-gradient-to-br from-rose-500/30 to-purple-600/30 border-2 border-rose-500/60 rounded-2xl flex items-center justify-center text-2xl sm:text-3xl shadow-lg flex-shrink-0">
+                    <span>{selectedAvatar}</span>
+                  </div>
+                  <input
+                    type="text"
+                    maxLength={25}
+                    placeholder="Ej: Fran, Sofi, Lucas..."
+                    value={rawInputName}
+                    onChange={(e) => setRawInputName(e.target.value)}
+                    className={`flex-1 px-4 py-3.5 bg-slate-900/90 border rounded-2xl text-white placeholder-slate-500 focus:outline-none transition text-base font-semibold ${
+                      isSecret 
+                        ? 'border-rose-500 ring-2 ring-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.3)]' 
+                        : 'border-slate-700 focus:border-rose-500'
+                    }`}
+                  />
+                </div>
               </div>
+
+              {/* Selector de Ícono / Emoji */}
+              <AvatarPicker 
+                selectedAvatar={selectedAvatar} 
+                onSelectAvatar={handleSelectAvatar} 
+                label="Elegí tu ícono de ruleta:" 
+              />
 
               {/* SECCIÓN OPCIONAL: PRECARGAR JUGADORES */}
               <div className="pt-3 border-t border-slate-800">
@@ -1000,11 +1033,12 @@ export default function App() {
 
                 {precreatedNames.length > 0 && (
                   <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto p-2.5 bg-slate-900/50 rounded-2xl border border-slate-800">
-                    {precreatedNames.map((name) => (
+                    {precreatedNames.map((name, idx) => (
                       <span
                         key={name}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-950/70 border border-purple-500/40 text-purple-300 text-xs font-bold rounded-xl shadow-sm"
                       >
+                        <span>{AVATARS[(idx + 1) % AVATARS.length]}</span>
                         {name}
                         <button
                           type="button"
@@ -1092,11 +1126,11 @@ export default function App() {
                   ¡Te sumaste a la Previa! 👋
                 </h2>
                 <p className="text-sm text-slate-300">
-                  Ingresá tu nombre o apodo para que la ruleta te elija:
+                  Ingresá tu nombre y elegí tu ícono para la ruleta:
                 </p>
               </div>
 
-              <form onSubmit={handleNextFromJoinName} className="space-y-5">
+              <form onSubmit={handleNextFromJoinName} className="space-y-4">
                 <div>
                   <div className="flex justify-between items-center mb-2">
                     <label className="block text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-300">
@@ -1109,23 +1143,35 @@ export default function App() {
                     )}
                   </div>
 
-                  <input
-                    type="text"
-                    maxLength={25}
-                    autoFocus
-                    placeholder="Ej: Fran, Sofi, Lucas, Nico..."
-                    value={rawInputName}
-                    onChange={(e) => {
-                      setRawInputName(e.target.value);
-                      if (errorMsg) setErrorMsg('');
-                    }}
-                    className={`w-full px-5 py-4 bg-slate-900/90 border rounded-2xl text-white placeholder-slate-500 focus:outline-none transition text-lg sm:text-xl font-bold ${
-                      isSecret
-                        ? 'border-rose-500 ring-2 ring-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.3)]'
-                        : 'border-slate-700 focus:border-rose-500'
-                    }`}
-                  />
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-14 h-14 bg-gradient-to-br from-rose-500/30 to-purple-600/30 border-2 border-rose-500/60 rounded-2xl flex items-center justify-center text-3xl shadow-lg flex-shrink-0">
+                      <span>{selectedAvatar}</span>
+                    </div>
+                    <input
+                      type="text"
+                      maxLength={25}
+                      autoFocus
+                      placeholder="Ej: Fran, Sofi, Lucas, Nico..."
+                      value={rawInputName}
+                      onChange={(e) => {
+                        setRawInputName(e.target.value);
+                        if (errorMsg) setErrorMsg('');
+                      }}
+                      className={`flex-1 px-5 py-4 bg-slate-900/90 border rounded-2xl text-white placeholder-slate-500 focus:outline-none transition text-lg sm:text-xl font-bold ${
+                        isSecret
+                          ? 'border-rose-500 ring-2 ring-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.3)]'
+                          : 'border-slate-700 focus:border-rose-500'
+                      }`}
+                    />
+                  </div>
                 </div>
+
+                {/* Selector de Ícono */}
+                <AvatarPicker
+                  selectedAvatar={selectedAvatar}
+                  onSelectAvatar={handleSelectAvatar}
+                  label="Elegí tu ícono o emoji:"
+                />
 
                 <div className="flex gap-3 pt-2">
                   <button
@@ -1183,7 +1229,7 @@ export default function App() {
 
               <div className="text-center space-y-1 py-1">
                 <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  ¡Hola, {processName(rawInputName).cleanName}! 🎉
+                  ¡Hola, {selectedAvatar} {processName(rawInputName).cleanName}! 🎉
                 </h2>
                 <p className="text-sm text-slate-300">
                   ¿Querés entrar como jugador nuevo o sumarte en el lugar de alguien?
@@ -1202,12 +1248,12 @@ export default function App() {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={`p-2.5 rounded-xl ${selectedMergeSlot === null ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
-                        <UserPlus className="w-5 h-5" />
+                      <div className={`w-11 h-11 rounded-xl text-2xl flex items-center justify-center ${selectedMergeSlot === null ? 'bg-rose-500 text-white' : 'bg-slate-800'}`}>
+                        <span>{selectedAvatar}</span>
                       </div>
                       <div>
                         <h4 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
-                          Entrar como "{processName(rawInputName).cleanName}"
+                          Entrar como "{selectedAvatar} {processName(rawInputName).cleanName}"
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold uppercase">
                             Nuevo
                           </span>
@@ -1249,8 +1295,11 @@ export default function App() {
                             }`}
                           >
                             <div className="flex items-center justify-between">
-                              <span className="font-bold text-sm sm:text-base truncate">{player.name}</span>
-                              {isSelected && <CheckCircle2 className="w-4 h-4 text-purple-400 flex-shrink-0" />}
+                              <div className="flex items-center gap-1.5 truncate">
+                                <span className="text-base sm:text-lg leading-none">{player.avatar || '🔥'}</span>
+                                <span className="font-bold text-sm sm:text-base truncate">{player.name}</span>
+                              </div>
+                              {isSelected && <CheckCircle2 className="w-4 h-4 text-purple-400 flex-shrink-0 ml-1" />}
                             </div>
                             {isMatch && (
                               <span className="text-[9px] font-black text-amber-300 uppercase tracking-widest mt-1">

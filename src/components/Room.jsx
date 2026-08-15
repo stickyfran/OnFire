@@ -37,6 +37,8 @@ import {
   Volume2,
   VolumeX
 } from 'lucide-react';
+import AvatarPicker from './AvatarPicker';
+import { getRandomAvatar, AVATARS } from '../data/avatars';
 
 // =========================================================
 // GESTOR DE AUDIO ULTRA-COMPATIBLE (SAFARI IOS, FIREFOX ANDROID, CHROME)
@@ -362,6 +364,7 @@ export default function Room({
   const [displayIndex, setDisplayIndex] = useState(0);
   const [newPlayerModal, setNewPlayerModal] = useState(false);
   const [extraPlayerName, setExtraPlayerName] = useState('');
+  const [newPlayerAvatar, setNewPlayerAvatar] = useState(() => getRandomAvatar());
   
   // Estado para ocultar/mostrar superpoderes de trampa con doble toque en #Ronda N
   const [cheatUIVisible, setCheatUIVisible] = useState(true);
@@ -795,6 +798,7 @@ export default function Room({
     const newPlayer = {
       id: `slot_${Date.now()}`,
       name: extraPlayerName.trim(),
+      avatar: newPlayerAvatar || getRandomAvatar(),
       isClaimed: true,
       claimedBy: null,
       joinedAt: new Date().toISOString()
@@ -803,6 +807,7 @@ export default function Room({
       players: [...(roomData.players || []), newPlayer]
     });
     setExtraPlayerName('');
+    setNewPlayerAvatar(getRandomAvatar());
     setNewPlayerModal(false);
   };
 
@@ -1315,7 +1320,9 @@ export default function Room({
                 animate={{ scale: 1, opacity: 1 }}
                 className="flex flex-col items-center px-1"
               >
-                <Flame className="w-7 h-7 sm:w-8 sm:h-8 text-rose-500 animate-pulse mb-0.5" />
+                <div className="text-2xl sm:text-3xl mb-0.5 animate-bounce">
+                  {currentPlayerInAnimation.avatar || '🔥'}
+                </div>
                 <span className="text-base sm:text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-fuchsia-400 tracking-wide uppercase truncate max-w-[100px] sm:max-w-[120px]">
                   {currentPlayerInAnimation.name}
                 </span>
@@ -1335,12 +1342,15 @@ export default function Room({
                     <span className="px-2 py-0.5 bg-rose-500/30 text-rose-300 text-[9px] sm:text-[10px] font-black uppercase rounded-full border border-rose-500/50 mb-0.5 animate-pulse">
                       🔥 ¡TE TOCA!
                     </span>
-                    <h2 className="text-sm sm:text-base md:text-lg font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] truncate max-w-[110px] sm:max-w-[130px]">
-                      {roomData.currentResult.name}
+                    <h2 className="text-sm sm:text-base md:text-lg font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] truncate max-w-[115px] sm:max-w-[135px] flex items-center justify-center gap-1">
+                      <span className="text-base sm:text-lg">{roomData.currentResult.avatar || '🔥'}</span>
+                      <span className="truncate">{roomData.currentResult.name}</span>
                     </h2>
                     {roomData.currentPair && (
-                      <span className="text-[9px] sm:text-[10px] text-pink-300 font-bold mt-0.5 truncate max-w-[110px]">
-                        Con: {roomData.currentPair.name}
+                      <span className="text-[9px] sm:text-[10px] text-pink-300 font-bold mt-0.5 truncate max-w-[115px] flex items-center justify-center gap-1">
+                        <span>Con:</span>
+                        <span>{roomData.currentPair.avatar || '💋'}</span>
+                        <span className="truncate">{roomData.currentPair.name}</span>
                       </span>
                     )}
                   </div>
@@ -1349,8 +1359,10 @@ export default function Room({
                     <span className="px-2 py-0.5 bg-purple-500/30 text-purple-300 text-[9px] sm:text-[10px] font-black uppercase rounded-full border border-purple-500/50 mb-0.5 animate-pulse">
                       💋 ¡CON VOS!
                     </span>
-                    <h2 className="text-xs sm:text-sm md:text-base font-black text-purple-200 truncate max-w-[110px] sm:max-w-[130px]">
-                      {roomData.currentResult.name} ⚡ Vos
+                    <h2 className="text-xs sm:text-sm md:text-base font-black text-purple-200 truncate max-w-[115px] sm:max-w-[135px] flex items-center justify-center gap-1">
+                      <span className="text-sm sm:text-base">{roomData.currentResult.avatar || '🔥'}</span>
+                      <span className="truncate">{roomData.currentResult.name}</span>
+                      <span>⚡ Vos</span>
                     </h2>
                   </div>
                 ) : (
@@ -1358,13 +1370,18 @@ export default function Room({
                     <span className="text-[9px] sm:text-[10px] uppercase font-black tracking-widest text-rose-400 mb-0.5 flex items-center gap-0.5">
                       <Sparkles className="w-2.5 h-2.5" /> ¡Le Toca!
                     </span>
-                    <h2 className="text-sm sm:text-base md:text-lg font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] truncate max-w-[110px] sm:max-w-[130px]">
-                      {roomData.currentResult.name}
+                    <h2 className="text-sm sm:text-base md:text-lg font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] truncate max-w-[115px] sm:max-w-[135px] flex items-center justify-center gap-1">
+                      <span className="text-base sm:text-lg">{roomData.currentResult.avatar || '🔥'}</span>
+                      <span className="truncate">{roomData.currentResult.name}</span>
                     </h2>
                     {roomData.currentPair && (
-                      <div className="mt-0.5 pt-0.5 border-t border-slate-800 flex items-center gap-1 text-[9px] sm:text-[10px] text-purple-300 font-bold">
+                      <div className="mt-0.5 pt-0.5 border-t border-slate-800 flex items-center justify-center gap-1 text-[9px] sm:text-[10px] text-purple-300 font-bold">
                         <HeartHandshake className="w-3 h-3 text-pink-400 flex-shrink-0" />
-                        <span className="truncate max-w-[100px]">Con: {roomData.currentPair.name}</span>
+                        <span className="truncate max-w-[100px] flex items-center gap-1">
+                          <span>Con:</span>
+                          <span>{roomData.currentPair.avatar || '💋'}</span>
+                          <span className="truncate">{roomData.currentPair.name}</span>
+                        </span>
                       </div>
                     )}
                   </div>
@@ -1435,7 +1452,7 @@ export default function Room({
                   ) : isTarget2 ? (
                     <span>💋</span>
                   ) : (
-                    <span className={`w-2 h-2 rounded-full ${isMe ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+                    <span className="text-sm sm:text-base leading-none">{player.avatar || '🔥'}</span>
                   )}
 
                   <span className="max-w-[75px] sm:max-w-[100px] truncate">{player.name}</span>
@@ -1878,29 +1895,48 @@ export default function Room({
                 </button>
               </div>
 
-              <form onSubmit={handleAddExtraPlayer} className="space-y-3">
-                <input
-                  type="text"
-                  maxLength={20}
-                  placeholder="Nombre del nuevo jugador..."
-                  value={extraPlayerName}
-                  onChange={(e) => setExtraPlayerName(e.target.value)}
-                  autoFocus
-                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-purple-500"
+              <form onSubmit={handleAddExtraPlayer} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
+                    Nombre del Jugador:
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <div className="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-500/50 flex items-center justify-center text-2xl flex-shrink-0">
+                      <span>{newPlayerAvatar}</span>
+                    </div>
+                    <input
+                      type="text"
+                      maxLength={20}
+                      placeholder="Ej: Fran, Lucas..."
+                      value={extraPlayerName}
+                      onChange={(e) => setExtraPlayerName(e.target.value)}
+                      autoFocus
+                      className="flex-1 px-3.5 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Selector de Avatar */}
+                <AvatarPicker
+                  selectedAvatar={newPlayerAvatar}
+                  onSelectAvatar={setNewPlayerAvatar}
+                  label="Ícono del jugador:"
                 />
-                <div className="flex gap-2">
+
+                <div className="flex gap-2 pt-1">
                   <button
                     type="button"
                     onClick={() => setNewPlayerModal(false)}
-                    className="w-1/2 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs"
+                    className="w-1/2 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="w-1/2 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs"
+                    disabled={!extraPlayerName.trim()}
+                    className="w-1/2 py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition active:scale-95 shadow-md"
                   >
-                    Guardar
+                    Sumar a la Sala
                   </button>
                 </div>
               </form>
@@ -1945,10 +1981,13 @@ export default function Room({
                       key={p.id}
                       className="p-2 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between text-xs"
                     >
-                      <span>{p.name}</span>
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="text-base">{p.avatar || '🔥'}</span>
+                        <span className="truncate">{p.name}</span>
+                      </div>
                       <button
                         onClick={() => handleDeletePlayer(p.id)}
-                        className="p-1 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg flex items-center gap-1"
+                        className="p-1 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg flex items-center gap-1 flex-shrink-0"
                       >
                         <Trash2 className="w-3.5 h-3.5" /> Eliminar
                       </button>
