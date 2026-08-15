@@ -139,6 +139,14 @@ const playVerdadSound = (muted = false) => {
   playTone(1108.73, 0.60, 'sine', 0.28, 0.20);
 };
 
+const playRoundStartSound = (muted = false) => {
+  if (muted) return;
+  playTone(261.63, 0.10, 'sawtooth', 0.00, 0.22);
+  playTone(392.00, 0.12, 'sawtooth', 0.07, 0.25);
+  playTone(523.25, 0.22, 'triangle', 0.14, 0.30);
+  playTone(783.99, 0.40, 'triangle', 0.22, 0.35);
+};
+
 // =========================================================
 // COMPONENTE DE FUEGO EN PANTALLA MEMOIZADO (CON MODO SPECS BAJAS)
 // =========================================================
@@ -513,6 +521,7 @@ export default function Room({
     if (!roomData) return;
 
     if (roomData.isSpinning) {
+      playRoundStartSound(isMuted);
       if (!spinInterval.current && roomData.players?.length > 0) {
         spinInterval.current = setInterval(() => {
           setDisplayIndex((prev) => (prev + 1) % roomData.players.length);
@@ -1045,6 +1054,51 @@ export default function Room({
         isVisible={(isMeActor || isMeTarget) && !!roomData?.currentResult && !roomData?.isSpinning && isFireActive}
         lowSpecsMode={!animationsEnabled}
       />
+
+      {/* ========================================================== */}
+      {/* BANNER ARCADE SLIDE DE "RONDA N" (ESTILO MEGAMAN / FIGHT)  */}
+      {/* ========================================================== */}
+      <AnimatePresence>
+        {roomData?.isSpinning && (
+          <motion.div
+            key={`round-banner-${roomData?.roundCount || 1}`}
+            initial={{ x: '-110vw', skewX: -16, opacity: 0.2 }}
+            animate={{
+              x: ['-110vw', '0vw', '0vw', '110vw'],
+              skewX: [-16, -6, -6, 16],
+              opacity: [0, 1, 1, 0],
+              scale: [0.85, 1.08, 1, 1.25]
+            }}
+            transition={{
+              duration: 2.1,
+              times: [0, 0.18, 0.78, 1],
+              ease: ["easeOut", "easeInOut", "easeIn"]
+            }}
+            className="pointer-events-none fixed inset-x-0 top-1/2 -translate-y-1/2 z-45 flex items-center justify-center select-none"
+          >
+            <div className="w-full relative py-4 sm:py-6 bg-gradient-to-r from-transparent via-slate-950/95 to-transparent border-y-4 border-amber-400 shadow-[0_0_50px_rgba(245,158,11,0.9)] backdrop-blur-md flex items-center justify-center overflow-hidden">
+              {/* Rayas de velocidad arcade */}
+              <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_15px,rgba(245,158,11,0.18)_15px,rgba(245,158,11,0.18)_30px)] animate-pulse" />
+              {/* Brillo de fuego central */}
+              <div className="absolute inset-0 bg-radial-gradient from-rose-600/40 via-amber-500/25 to-transparent pointer-events-none" />
+
+              <div className="relative z-10 flex flex-col items-center justify-center transform -skew-x-6 text-center px-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-6 sm:w-12 h-1 bg-amber-400 rounded-full animate-ping" />
+                  <span className="text-xs sm:text-sm font-black uppercase tracking-[0.35em] text-amber-300 drop-shadow-[0_0_10px_rgba(245,158,11,1)]">
+                    ⚡ ¡A JUGAR! ⚡
+                  </span>
+                  <span className="w-6 sm:w-12 h-1 bg-amber-400 rounded-full animate-ping" />
+                </div>
+
+                <h2 className="text-4xl sm:text-6xl md:text-7xl font-black italic tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-white to-amber-400 drop-shadow-[0_0_35px_rgba(245,158,11,1)] uppercase">
+                  RONDA {roomData?.roundCount || 1}
+                </h2>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ========================================================== */}
       {/* SUPER ANIMACIÓN DE PANTALLA COMPLETA (RETO vs VERDAD)     */}
