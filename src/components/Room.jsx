@@ -194,7 +194,9 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
 
     // Aumento automático de nivel de picante cada 8 rondas
     let currentSpice = roomData.spiceLevel || 1;
-    if (newRoundCount >= 16 && currentSpice < 3) {
+    if (newRoundCount >= 24 && currentSpice < 4) {
+      currentSpice = 4;
+    } else if (newRoundCount >= 16 && currentSpice < 3) {
       currentSpice = 3;
     } else if (newRoundCount >= 8 && currentSpice < 2) {
       currentSpice = 2;
@@ -578,8 +580,8 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
             </>
           )}
 
-          {/* CASO 3: 💀 NIVEL FUEGO TOTAL -> ¡INFIERNO TOTAL QUE PRENDE FUEGO TODA LA PANTALLA! 💀 */}
-          {currentSpice === 3 && (
+          {/* CASO 3 & 4: 💀 NIVEL FUEGO TOTAL & EXTREMO -> ¡INFIERNO TOTAL QUE PRENDE FUEGO TODA LA PANTALLA! 💀 */}
+          {currentSpice >= 3 && (
             <>
               {/* Quemadura extrema de bordes en los 4 costados */}
               <motion.div
@@ -807,14 +809,14 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
       <div className="w-full max-w-lg z-10 my-2">
         <div className="p-2 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-lg backdrop-blur-md space-y-2">
           
-          {/* Fila 1: Botones de Nivel de Picante */}
-          <div className="flex items-center justify-between gap-1.5">
+          {/* Fila 1: Botones de Nivel de Picante (1 a 4) */}
+          <div className="flex items-center justify-between gap-1">
             <button
               onClick={() => canCheat && handleChangeSpiceLevel(1)}
               disabled={!canCheat}
-              className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-1.5 px-1.5 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1 ${
                 currentSpice === 1
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
                   : 'text-slate-500 hover:text-slate-300'
               } ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
             >
@@ -825,9 +827,9 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
             <button
               onClick={() => canCheat && handleChangeSpiceLevel(2)}
               disabled={!canCheat}
-              className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-1.5 px-1.5 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1 ${
                 currentSpice === 2
-                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/50 shadow-[0_0_12px_rgba(244,63,94,0.4)]'
+                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.4)]'
                   : 'text-slate-500 hover:text-slate-300'
               } ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
             >
@@ -838,14 +840,27 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
             <button
               onClick={() => canCheat && handleChangeSpiceLevel(3)}
               disabled={!canCheat}
-              className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-1.5 px-1.5 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1 ${
                 currentSpice === 3
-                  ? 'bg-purple-600/30 text-purple-300 border border-purple-500/60 shadow-[0_0_15px_rgba(168,85,247,0.5)]'
+                  ? 'bg-purple-600/30 text-purple-300 border border-purple-500/60 shadow-[0_0_12px_rgba(168,85,247,0.5)]'
                   : 'text-slate-500 hover:text-slate-300'
               } ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
             >
               <span>💀</span>
               <span className="truncate">3. Fuego</span>
+            </button>
+
+            <button
+              onClick={() => canCheat && handleChangeSpiceLevel(4)}
+              disabled={!canCheat}
+              className={`flex-1 py-1.5 px-1.5 rounded-xl text-[11px] font-black transition flex items-center justify-center gap-1 ${
+                currentSpice === 4
+                  ? 'bg-red-600/30 text-red-300 border border-red-500/70 shadow-[0_0_15px_rgba(239,68,68,0.7)]'
+                  : 'text-slate-500 hover:text-slate-300'
+              } ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
+            >
+              <span className="flex items-center -space-x-0.5">💀🔥</span>
+              <span className="truncate">4. Extremo</span>
             </button>
           </div>
 
@@ -960,9 +975,9 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
         <div className="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center mb-3">
           
           {/* ========================================================= */}
-          {/* FUEGO RADIAL GIGANTE ENVOLVIENDO LA RULETA (NIVEL 3)     */}
+          {/* FUEGO RADIAL GIGANTE ENVOLVIENDO LA RULETA (NIVEL 3 y 4)   */}
           {/* ========================================================= */}
-          {currentSpice === 3 && (
+          {currentSpice >= 3 && (
             <>
               {/* Resplandor y halo ardiente envolvente */}
               <motion.div
@@ -1026,7 +1041,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
           <motion.div
             animate={{
               rotate: roomData.isSpinning ? 720 : 0,
-              borderColor: currentSpice === 3
+              borderColor: currentSpice >= 3
                 ? ['#f97316', '#ef4444', '#f59e0b', '#dc2626', '#f97316']
                 : roomData.isSpinning 
                 ? ['#f43f5e', '#d946ef', '#a855f7', '#f43f5e'] 
@@ -1038,10 +1053,10 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
             }}
             transition={{
               rotate: { repeat: roomData.isSpinning ? Infinity : 0, duration: 1.1, ease: "linear" },
-              borderColor: { repeat: Infinity, duration: currentSpice === 3 ? 0.8 : 1.4 }
+              borderColor: { repeat: Infinity, duration: currentSpice >= 3 ? 0.8 : 1.4 }
             }}
             className={`absolute inset-0 rounded-full ${
-              currentSpice === 3
+              currentSpice >= 3
                 ? 'border-4 border-amber-400 shadow-[0_0_40px_#ef4444,0_0_70px_#f97316,inset_0_0_20px_#f59e0b]'
                 : 'border-4 border-dashed shadow-[0_0_35px_rgba(244,63,94,0.3)]'
             }`}
@@ -1049,13 +1064,13 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
 
           {/* Círculo central de la ruleta */}
           <div className={`w-52 h-52 sm:w-60 sm:h-60 rounded-full border flex flex-col items-center justify-center p-5 text-center relative overflow-hidden z-10 transition-all ${
-            currentSpice === 3
+            currentSpice >= 3
               ? 'bg-gradient-to-b from-red-950 via-slate-950 to-red-950 border-amber-500/80 shadow-[inset_0_0_35px_rgba(239,68,68,0.7)]'
               : 'bg-gradient-to-b from-slate-900 to-slate-950 border-slate-700/80 shadow-inner'
           }`}>
             
-            {/* Núcleo de lava ardiente para nivel 3 */}
-            {currentSpice === 3 && (
+            {/* Núcleo de lava ardiente para nivel 3 y 4 */}
+            {currentSpice >= 3 && (
               <motion.div
                 animate={{
                   opacity: [0.35, 0.7, 0.4, 0.75, 0.35],
@@ -1152,7 +1167,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
             >
               <div className="flex items-center justify-center gap-2 mb-2">
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 border border-slate-700 text-slate-300">
-                  {currentSpice === 1 ? '🌶️ Suave' : currentSpice === 2 ? '🔥 Caliente' : '💀 Fuego Total'}
+                  {currentSpice === 1 ? '🌶️ Suave' : currentSpice === 2 ? '🔥 Caliente' : currentSpice === 3 ? '💀 Fuego' : '💀🔥 Extremo'}
                 </span>
               </div>
 

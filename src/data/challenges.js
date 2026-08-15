@@ -2,6 +2,9 @@
 // Nivel 1: Previa / Suave (🌶️) - Romper el hielo, calentando motores, miradas, tragos y tensión.
 // Nivel 2: Caliente / Tensión (🔥) - Besos, mordidas, roces, masajes, prendas y preguntas sin filtro.
 // Nivel 3: Fuego Total / Extremo (💀) - Chape salvaje, shots del cuerpo, tocamientos atrevidos, desnudarse y fantasías explícitas.
+// Nivel 4: Extremo (💀🔥) - Cargado dinámicamente desde extremo.json
+
+import extremoData from './extremo.json';
 
 const generateChallenges = () => {
   const list = [];
@@ -310,6 +313,19 @@ const generateChallenges = () => {
   expandPool(n1, 165, 1);
   expandPool(n2, 170, 2);
   expandPool(n3, 165, 3);
+
+  // NIVEL 4: EXTREMO (💀🔥) - Cargado dinámicamente desde extremo.json
+  if (Array.isArray(extremoData) && extremoData.length > 0) {
+    extremoData.forEach(item => {
+      if (typeof item === 'string') {
+        add(4, 'reto', item);
+      } else if (item && item.texto) {
+        add(4, item.tipo || 'reto', item.texto);
+      } else if (Array.isArray(item) && item.length >= 2) {
+        add(4, item[0], item[1]);
+      }
+    });
+  }
 
   return list;
 };
