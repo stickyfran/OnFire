@@ -99,6 +99,22 @@ export default function App() {
     };
   }, []);
 
+  // Manejo del botón Atrás en el asistente de inicio de la App
+  useEffect(() => {
+    if (currentRoom) return;
+
+    const handleWizardPop = () => {
+      setStepJoin((curr) => {
+        if (curr === 'join_merge') return 'join_name';
+        if (curr === 'join_name') return 'input_code';
+        return 'input_code';
+      });
+    };
+
+    window.addEventListener('popstate', handleWizardPop);
+    return () => window.removeEventListener('popstate', handleWizardPop);
+  }, [currentRoom]);
+
   const handleInstallApp = async () => {
     if (deferredPrompt) {
       deferredPrompt.prompt();
@@ -454,6 +470,7 @@ export default function App() {
       const data = roomSnap.data();
       setAllRoomPlayers(data.players || []);
       setSelectedMergeSlot(null);
+      window.history.pushState({ step: 'join_name' }, '', window.location.href);
       setStepJoin('join_name');
     } catch (err) {
       console.error(err);
@@ -491,6 +508,7 @@ export default function App() {
 
     // Si hay miembros ya presentes en la sala, pasar al paso de elegir identidad/merge
     if (allRoomPlayers && allRoomPlayers.length > 0) {
+      window.history.pushState({ step: 'join_merge' }, '', window.location.href);
       setStepJoin('join_merge');
     } else {
       // Si la sala no tiene slots precargados, unirse directamente

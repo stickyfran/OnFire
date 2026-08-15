@@ -574,6 +574,69 @@ export default function Room({
     }
   }, [roomData?.currentChallenge?.id || roomData?.currentChallenge?.texto, roomData?.isSpinning]);
 
+  // =========================================================
+  // RETENER PANTALLA EN CELULARES (INTERCEPTAR BOTÓN ATRÁS)
+  // =========================================================
+  // Al tocar Atrás en el celular/navegador, abre el Menú de Juego o cierra el modal activo,
+  // evitando que la persona se salga por accidente de la previa.
+  const modalsRef = useRef({
+    showCheatChallengeModal,
+    showQRModal,
+    newPlayerModal,
+    showAdminPanel
+  });
+
+  useEffect(() => {
+    modalsRef.current = {
+      showCheatChallengeModal,
+      showQRModal,
+      newPlayerModal,
+      showAdminPanel
+    };
+  }, [showCheatChallengeModal, showQRModal, newPlayerModal, showAdminPanel]);
+
+  useEffect(() => {
+    // Empujar estado inicial para que haya historial disponible para capturar
+    window.history.pushState({ onfire_room: roomId, ts: Date.now() }, '', window.location.href);
+
+    const handlePopState = () => {
+      // Re-empujar inmediatamente para retener la pantalla permanentemente dentro del juego
+      window.history.pushState({ onfire_room: roomId, ts: Date.now() }, '', window.location.href);
+
+      const {
+        showCheatChallengeModal: isCheatOpen,
+        showQRModal: isQROpen,
+        newPlayerModal: isNewPlayerOpen,
+        showAdminPanel: isMenuOpen
+      } = modalsRef.current;
+
+      if (isCheatOpen) {
+        setShowCheatChallengeModal(false);
+        return;
+      }
+      if (isQROpen) {
+        setShowQRModal(false);
+        return;
+      }
+      if (isNewPlayerOpen) {
+        setNewPlayerModal(false);
+        return;
+      }
+      if (isMenuOpen) {
+        setShowAdminPanel(false);
+        return;
+      }
+
+      // Si no hay ningún modal abierto, abrir el Menú de Juego / Ajustes
+      setShowAdminPanel(true);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [roomId]);
+
   // Doble toque en #Ronda para ocultar/mostrar superpoderes de trampa
   const handleRondaDoubleTap = () => {
     if (!canCheat) return;
@@ -1945,101 +2008,179 @@ export default function Room({
         )}
       </AnimatePresence>
 
-      {/* PANEL DE ADMINISTRADOR (MODAL) */}
+      {/* MENÚ DE JUEGO / AJUSTES (MODAL DE PAUSA) */}
       <AnimatePresence>
-        {showAdminPanel && (isHost || canCheat) && (
+        {showAdminPanel && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4"
           >
             <motion.div
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              className="bg-slate-900 border border-slate-800 p-6 rounded-3xl w-full max-w-md shadow-2xl space-y-5"
+              initial={{ scale: 0.92, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.92, opacity: 0 }}
+              className="bg-slate-900 border border-slate-800 p-5 sm:p-6 rounded-3xl w-full max-w-md shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto"
             >
+              {/* Header del Menú */}
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 className="text-lg font-bold text-purple-400 flex items-center gap-2">
-                  <Settings className="w-5 h-5" /> Panel de Sala
-                </h3>
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-purple-500/20 text-purple-400 rounded-xl">
+                    <Settings className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-white">Menú de Juego</h3>
+                    <p className="text-[11px] text-slate-400 font-mono">Sala: <strong className="text-rose-400">{roomId}</strong></p>
+                  </div>
+                </div>
+
                 <button
                   onClick={() => setShowAdminPanel(false)}
-                  className="text-slate-400 hover:text-white text-sm"
+                  className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-sm font-bold transition active:scale-95"
                 >
                   ✕
                 </button>
               </div>
 
-              {/* Gestión de Jugadores (Eliminar) */}
+              {/* Botones de Control Rápido */}
               <div>
-                <h4 className="text-sm font-semibold text-slate-200 mb-2">Eliminar Jugadores</h4>
-                <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
-                  {playersList.map((p) => (
-                    <div
-                      key={p.id}
-                      className="p-2 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between text-xs"
-                    >
-                      <div className="flex items-center gap-1.5 truncate">
-                        <span className="text-base">{p.avatar || '🔥'}</span>
-                        <span className="truncate">{p.name}</span>
-                      </div>
-                      <button
-                        onClick={() => handleDeletePlayer(p.id)}
-                        className="p-1 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg flex items-center gap-1 flex-shrink-0"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" /> Eliminar
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h4 className="text-sm font-semibold text-slate-200 mb-1">
-                  Base de Retos ({roomData.challenges?.length || 0})
-                </h4>
-                <p className="text-xs text-slate-400 mb-3">
-                  Usá <code className="text-pink-400">{'{target}'}</code> en tus retos para que se reemplace por la pareja seleccionada.
-                </p>
-
-                <div className="grid grid-cols-2 gap-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Controles Rápidos</h4>
+                <div className="grid grid-cols-2 gap-2">
                   <button
-                    onClick={handleExportChallenges}
-                    className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5"
+                    type="button"
+                    onClick={handleToggleMute}
+                    className="p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl flex items-center gap-2 text-xs font-bold text-slate-200 transition active:scale-95"
                   >
-                    <Download className="w-4 h-4 text-purple-400" /> Exportar JSON
+                    {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-amber-400" />}
+                    <span>{isMuted ? 'Activar Audio' : 'Silenciar'}</span>
                   </button>
 
-                  <label className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer">
-                    <Upload className="w-4 h-4 text-pink-400" /> Importar JSON
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={handleImportChallenges}
-                      className="hidden"
-                    />
-                  </label>
+                  <button
+                    type="button"
+                    onClick={handleToggleFullscreen}
+                    className="p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl flex items-center gap-2 text-xs font-bold text-slate-200 transition active:scale-95"
+                  >
+                    {isFullscreen ? <Minimize className="w-4 h-4 text-amber-400" /> : <Maximize className="w-4 h-4 text-purple-400" />}
+                    <span>{isFullscreen ? 'Ventana' : 'Pantalla Completa'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleToggleLowSpecs}
+                    className={`p-2.5 border rounded-xl flex items-center gap-2 text-xs font-bold transition active:scale-95 ${
+                      lowSpecsMode
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/60 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
+                        : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800'
+                    }`}
+                  >
+                    <Zap className={`w-4 h-4 ${lowSpecsMode ? 'fill-amber-400 text-amber-400' : 'text-slate-400'}`} />
+                    <span>{lowSpecsMode ? 'Modo Rápido: ON' : 'Acelerar Celular'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAdminPanel(false);
+                      setShowQRModal(true);
+                    }}
+                    className="p-2.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl flex items-center gap-2 text-xs font-bold text-rose-300 transition active:scale-95"
+                  >
+                    <QrCode className="w-4 h-4 text-rose-400" />
+                    <span>Código QR / Invitar</span>
+                  </button>
                 </div>
               </div>
 
-              {isCheatActiveVisual && (
-                <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-300 space-y-1.5">
-                  <p className="font-bold flex items-center gap-1.5 text-rose-400">
-                    <EyeOff className="w-4 h-4" /> Modo Trampa Activo:
-                  </p>
-                  <p className="text-slate-300 text-[11px] leading-relaxed">
-                    1. Tocá a un jugador para fijar <strong>🎯 1º (A quién le toca)</strong>.
-                    <br />
-                    2. Tocá a otro para fijar <strong>💋 2º (Con quién interactúa)</strong>.
-                    <br />
-                    3. Tocá <strong>+ Reto</strong> para elegir o redactar el reto exacto que saldrá.
-                  </p>
+              {/* Sección Exclusiva de Anfitrión o Trampa */}
+              {(isHost || canCheat) && (
+                <div className="space-y-4 pt-2 border-t border-slate-800">
+                  {/* Gestión de Jugadores (Eliminar) */}
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Administrar Jugadores</h4>
+                    <div className="space-y-1.5 max-h-28 overflow-y-auto pr-1">
+                      {playersList.map((p) => (
+                        <div
+                          key={p.id}
+                          className="p-2 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between text-xs"
+                        >
+                          <div className="flex items-center gap-1.5 truncate">
+                            <span className="text-base">{p.avatar || '🔥'}</span>
+                            <span className="truncate">{p.name}</span>
+                          </div>
+                          <button
+                            onClick={() => handleDeletePlayer(p.id)}
+                            className="p-1 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg flex items-center gap-1 flex-shrink-0 font-semibold"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Eliminar
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Base de Retos */}
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                      Base de Retos ({roomData.challenges?.length || 0})
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={handleExportChallenges}
+                        className="py-2 px-3 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 text-slate-300"
+                      >
+                        <Download className="w-3.5 h-3.5 text-purple-400" /> Exportar JSON
+                      </button>
+
+                      <label className="py-2 px-3 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer text-slate-300">
+                        <Upload className="w-3.5 h-3.5 text-pink-400" /> Importar JSON
+                        <input
+                          type="file"
+                          accept=".json"
+                          onChange={handleImportChallenges}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Info Modo Trampa */}
+                  {isCheatActiveVisual && (
+                    <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-300 space-y-1">
+                      <p className="font-bold flex items-center gap-1 text-rose-400">
+                        <EyeOff className="w-3.5 h-3.5" /> Modo Trampa Activo:
+                      </p>
+                      <p className="text-slate-300 text-[11px] leading-relaxed">
+                        1. Tocá a un jugador para fijar <strong>🎯 1º (A quién le toca)</strong>.
+                        <br />
+                        2. Tocá a otro para fijar <strong>💋 2º (Con quién interactúa)</strong>.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Botón Instalar App (PWA) dentro de Ajustes */}
+              {/* Jugadores en la Sala (Para no-hosts) */}
+              {!isHost && !canCheat && (
+                <div className="pt-2 border-t border-slate-800">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                    Jugadores en la Ronda ({playersList.length})
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto">
+                    {playersList.map((p) => (
+                      <span
+                        key={p.id}
+                        className="px-2.5 py-1 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 font-bold flex items-center gap-1"
+                      >
+                        <span>{p.avatar || '🔥'}</span>
+                        <span>{p.name}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Botón Instalar App (PWA) */}
               {!isInstalled && onInstallApp && (
                 <div className="pt-2 border-t border-slate-800">
                   <button
@@ -2056,28 +2197,45 @@ export default function Room({
               )}
 
               {/* Sección de Versión y Limpieza de Caché */}
-              <div className="pt-3 border-t border-slate-800 space-y-2">
-                <div className="flex items-center justify-between text-xs text-slate-300">
-                  <span className="font-semibold">Versión Instalada:</span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-slate-950 border border-slate-800 font-mono font-bold text-rose-400">
+              <div className="pt-2 border-t border-slate-800 space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-400">
+                  <span>Versión de la App:</span>
+                  <span className="px-2 py-0.5 rounded-full bg-slate-950 border border-slate-800 font-mono font-bold text-rose-400 text-[11px]">
                     {appVersion}
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={handleForcePurgeCache}
-                  className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl border border-slate-700 text-xs font-bold flex items-center justify-center gap-2 transition active:scale-95"
+                  className="w-full py-2 bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white rounded-xl border border-slate-800 text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-95"
                 >
-                  <RefreshCw className="w-3.5 h-3.5 text-pink-400" /> Limpiar Caché y Forzar Actualización
+                  <RefreshCw className="w-3 h-3 text-pink-400" /> Limpiar Caché y Actualizar
                 </button>
               </div>
 
-              <button
-                onClick={() => setShowAdminPanel(false)}
-                className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-sm transition"
-              >
-                Cerrar
-              </button>
+              {/* Botones de Acción: Continuar y Salir */}
+              <div className="pt-2 border-t border-slate-800 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('¿Seguro que querés salir de la sala?')) {
+                      onLeave();
+                    }
+                  }}
+                  className="w-1/3 py-3 bg-slate-800/80 hover:bg-rose-950 hover:border-rose-600 border border-slate-700 text-slate-300 hover:text-rose-300 font-bold rounded-2xl text-xs flex items-center justify-center gap-1.5 transition active:scale-95"
+                >
+                  <LogOut className="w-4 h-4 text-rose-400" />
+                  <span>Salir</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowAdminPanel(false)}
+                  className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-rose-600 hover:from-purple-700 hover:to-rose-700 text-white font-black rounded-2xl text-sm shadow-[0_0_20px_rgba(168,85,247,0.4)] transition active:scale-95"
+                >
+                  Continuar Jugando
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
