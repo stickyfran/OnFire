@@ -1114,35 +1114,29 @@ export default function Room({
         )}
       </AnimatePresence>
 
-      {/* Header con BOTÓN DE SALA, QR, SONIDO, PANTALLA COMPLETA Y MODO RENDIMIENTO (SIEMPRE VISIBLE) */}
+      {/* Header SUPERIOR con SALIDA, RONDA, AUDIO, PANTALLA COMPLETA Y MODO RENDIMIENTO */}
       <header className="w-full max-w-lg flex items-center justify-between z-30 pt-1 pb-1.5 border-b border-slate-800/80 mb-0.5 flex-shrink-0">
-        <button
-          onClick={onLeave}
-          className="p-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-rose-400 transition active:scale-95"
-          title="Salir de la sala"
-        >
-          <LogOut className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={onLeave}
+            className="p-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-rose-400 transition active:scale-95 shadow-sm"
+            title="Salir de la sala"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+
+          {/* Indicador de Ronda con Doble Toque Secreto para Modo Trampa */}
+          <span 
+            onClick={handleRondaDoubleTap}
+            className="flex items-center gap-1.5 cursor-pointer select-none active:opacity-75 font-bold text-xs text-slate-200 px-2.5 py-1.5 bg-slate-900/90 border border-slate-800 rounded-xl shadow-sm"
+            title={canCheat ? "Doble toque para ocultar/mostrar superpoderes de trampa" : ""}
+          >
+            <TrendingUp className="w-3.5 h-3.5 text-rose-500" />
+            <span>Ronda #{roomData.roundCount || 0}</span>
+          </span>
+        </div>
 
         <div className="flex items-center gap-1 sm:gap-1.5">
-          {/* Botón Código de Sala */}
-          <button
-            onClick={handleCopyCode}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900/90 border border-rose-500/30 rounded-xl text-xs font-mono font-bold tracking-widest text-rose-300 hover:border-rose-500 transition shadow-sm active:scale-95"
-          >
-            <span>SALA: {roomId}</span>
-            {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-          </button>
-
-          {/* Botón QR para escanear y entrar de una */}
-          <button
-            onClick={() => setShowQRModal(true)}
-            className="p-2 bg-slate-900/90 border border-rose-500/40 hover:border-rose-400 rounded-xl text-rose-400 hover:text-white transition shadow-sm flex items-center justify-center active:scale-95"
-            title="Mostrar código QR de la sala"
-          >
-            <QrCode className="w-4 h-4" />
-          </button>
-
           {/* Botón Sonido (Activar / Silenciar) */}
           <button
             onClick={handleToggleMute}
@@ -1287,18 +1281,32 @@ export default function Room({
 
         </div>
 
-        {/* Indicador de Ronda y Botones Sumar Jugador + Ajustes Flotante */}
-        <div className="w-full max-w-lg flex justify-between items-center px-1 mt-1 text-xs text-slate-400 font-medium flex-shrink-0">
-          <span 
-            onClick={handleRondaDoubleTap}
-            className="flex items-center gap-1.5 cursor-pointer select-none active:opacity-75 font-bold text-slate-200"
-            title={canCheat ? "Doble toque para ocultar/mostrar superpoderes de trampa" : ""}
-          >
-            <TrendingUp className="w-4 h-4 text-rose-500" /> Ronda #{roomData.roundCount || 0}
-          </span>
+        {/* Subheader: SALA & QR A LA IZQUIERDA | JUGADORES (N), SUMAR Y AJUSTES A LA DERECHA */}
+        <div className="w-full max-w-lg flex justify-between items-center px-0.5 mt-1 text-xs text-slate-400 font-medium flex-shrink-0">
+          
+          {/* LADO IZQUIERDO: Código de Sala y Botón QR */}
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={handleCopyCode}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 bg-slate-900/90 border border-rose-500/30 rounded-xl text-xs font-mono font-bold tracking-widest text-rose-300 hover:border-rose-500 transition shadow-sm active:scale-95"
+              title="Copiar código de sala"
+            >
+              <span>SALA: {roomId}</span>
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-rose-400" />}
+            </button>
 
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 text-slate-300 font-bold text-xs">
+            <button
+              onClick={() => setShowQRModal(true)}
+              className="p-1 sm:p-1.5 bg-slate-900/90 border border-rose-500/40 hover:border-rose-400 rounded-xl text-rose-400 hover:text-white transition shadow-sm flex items-center justify-center active:scale-95"
+              title="Mostrar código QR de la sala"
+            >
+              <QrCode className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* LADO DERECHO: Jugadores (N), Sumar y Ajustes */}
+          <div className="flex items-center gap-1 sm:gap-1.5">
+            <span className="flex items-center gap-1 text-slate-300 font-bold text-xs bg-slate-900/90 border border-slate-800 px-2 py-1 rounded-xl shadow-sm">
               <Users className="w-3.5 h-3.5 text-purple-400" /> {playersList.length}
             </span>
 
@@ -1306,15 +1314,17 @@ export default function Room({
             <button
               onClick={() => setNewPlayerModal(true)}
               className="px-2.5 py-1 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/50 text-purple-200 text-xs font-bold flex items-center gap-1 transition active:scale-95 shadow-sm"
+              title="Sumar nuevo jugador a la sala"
             >
-              <Plus className="w-3.5 h-3.5" /> Sumar
+              <Plus className="w-3.5 h-3.5" />
+              <span>Sumar</span>
             </button>
 
-            {/* Botón Ajustes integrado y siempre accesible */}
+            {/* Botón Ajustes */}
             <button
               onClick={() => setShowAdminPanel(true)}
               className="px-2.5 py-1 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-200 hover:text-white text-xs font-bold flex items-center gap-1 shadow-sm transition active:scale-95"
-              title="Ajustes de la sala"
+              title="Menú de juego y ajustes"
             >
               <Settings className="w-3.5 h-3.5 text-purple-400" />
               <span>Ajustes</span>
