@@ -677,6 +677,15 @@ export default function Room({
     }
   };
 
+  // Desplazar automáticamente hacia arriba con margen para que el teclado nunca tape el input
+  const handleInputFocus = (e) => {
+    setTimeout(() => {
+      if (e?.target) {
+        e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 280);
+  };
+
   // Reemplazar {target} y {actor} en retos
   const formatChallenge = (rawText, actorName, targetName) => {
     if (!rawText) return '';
@@ -1950,6 +1959,7 @@ export default function Room({
                     <textarea
                       rows={3}
                       value={customChallengeInput}
+                      onFocus={handleInputFocus}
                       onChange={(e) => setCustomChallengeInput(e.target.value)}
                       placeholder="Ej: Dale un beso apasionado de 15 segundos en la boca a {target}..."
                       className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-pink-500 resize-none font-medium"
@@ -1990,6 +2000,7 @@ export default function Room({
                       type="text"
                       placeholder="Buscar por palabra (ej: beso, trago, labio, hotel)..."
                       value={challengeSearchTerm}
+                      onFocus={handleInputFocus}
                       onChange={(e) => setChallengeSearchTerm(e.target.value)}
                       className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pink-500"
                     />
@@ -2028,13 +2039,13 @@ export default function Room({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
           >
             <motion.div
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.95 }}
-              className="bg-slate-900 border border-slate-800 p-5 rounded-3xl w-full max-w-sm shadow-2xl space-y-4"
+              className="bg-slate-900 border border-slate-800 p-5 rounded-3xl w-full max-w-sm shadow-2xl space-y-4 max-h-[90dvh] overflow-y-auto"
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
@@ -2070,6 +2081,7 @@ export default function Room({
                       maxLength={20}
                       placeholder="Ej: Fran, Lucas..."
                       value={extraPlayerName}
+                      onFocus={handleInputFocus}
                       onChange={(e) => setExtraPlayerName(e.target.value)}
                       autoFocus
                       className="flex-1 px-3.5 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-purple-500"
