@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -389,6 +389,49 @@ export default function Room({
       }
     }
   };
+
+  // Auto-desvanecimiento del Header si no hay interacción o si se activa pantalla completa
+  const [showHeader, setShowHeader] = useState(true);
+  const headerTimeoutRef = useRef(null);
+
+  const resetHeaderTimer = useCallback(() => {
+    setShowHeader(true);
+    if (headerTimeoutRef.current) clearTimeout(headerTimeoutRef.current);
+    headerTimeoutRef.current = setTimeout(() => {
+      setShowHeader(false);
+    }, 3500);
+  }, []);
+
+  useEffect(() => {
+    resetHeaderTimer();
+
+    const handleUserInteraction = () => {
+      resetHeaderTimer();
+    };
+
+    window.addEventListener('touchstart', handleUserInteraction, { passive: true });
+    window.addEventListener('touchmove', handleUserInteraction, { passive: true });
+    window.addEventListener('mousemove', handleUserInteraction, { passive: true });
+    window.addEventListener('scroll', handleUserInteraction, { passive: true });
+    window.addEventListener('click', handleUserInteraction, { passive: true });
+
+    return () => {
+      if (headerTimeoutRef.current) clearTimeout(headerTimeoutRef.current);
+      window.removeEventListener('touchstart', handleUserInteraction);
+      window.removeEventListener('touchmove', handleUserInteraction);
+      window.removeEventListener('mousemove', handleUserInteraction);
+      window.removeEventListener('scroll', handleUserInteraction);
+      window.removeEventListener('click', handleUserInteraction);
+    };
+  }, [resetHeaderTimer]);
+
+  useEffect(() => {
+    if (isFullscreen) {
+      setShowHeader(false);
+    } else {
+      resetHeaderTimer();
+    }
+  }, [isFullscreen, resetHeaderTimer]);
 
   const spinInterval = useRef(null);
 
@@ -845,7 +888,7 @@ export default function Room({
   ).slice(0, 30);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-between p-4 relative pb-12 overflow-x-hidden">
+    <div className="h-[100dvh] max-h-[100dvh] bg-slate-950 text-white flex flex-col items-center justify-between p-2 sm:p-3 relative overflow-hidden select-none">
       {/* Fondos */}
       <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-rose-600/15 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-fuchsia-600/15 rounded-full blur-3xl pointer-events-none" />
@@ -932,30 +975,47 @@ export default function Room({
         )}
       </AnimatePresence>
 
-      {/* Header con BOTÓN DE SALA Y BOTÓN DE QR */}
-      <header className="w-full max-w-lg flex items-center justify-between pt-2 pb-3 z-10 border-b border-slate-800/80">
+      {/* Botón flotante discreto para re-mostrar el header cuando está oculto */}
+      {!showHeader && (
+        <button
+          onClick={() => {
+            setShowHeader(true);
+            resetHeaderTimer();
+          }}
+          className="fixed top-1 left-1/2 -translate-x-1/2 z-40 px-3 py-0.5 bg-slate-900/85 hover:bg-slate-800 border border-slate-700/60 rounded-full text-[10px] font-bold text-slate-400 hover:text-white flex items-center gap-1 backdrop-blur-md shadow-md active:scale-95 transition"
+        >
+          <span>⚙️ Ajustes ▼</span>
+        </button>
+      )}
+
+      {/* Header con BOTÓN DE SALA Y BOTÓN DE QR (Auto-desvanecible) */}
+      <header className={`w-full max-w-lg flex items-center justify-between z-30 transition-all duration-500 flex-shrink-0 ${
+        showHeader 
+          ? 'opacity-100 translate-y-0 max-h-16 pt-1 pb-1.5 border-b border-slate-800/80 mb-0.5' 
+          : 'opacity-0 -translate-y-full max-h-0 overflow-hidden pointer-events-none mb-0 pt-0 pb-0 border-b-0'
+      }`}>
         <button
           onClick={onLeave}
-          className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-rose-400 transition"
+          className="p-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-rose-400 transition"
           title="Salir de la sala"
         >
-          <LogOut className="w-5 h-5" />
+          <LogOut className="w-4 h-4" />
         </button>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           {/* Botón Código de Sala */}
           <button
             onClick={handleCopyCode}
-            className="flex items-center gap-2 px-3.5 py-1.5 bg-slate-900/90 border border-rose-500/30 rounded-xl text-xs font-mono font-bold tracking-widest text-rose-300 hover:border-rose-500 transition shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1 bg-slate-900/90 border border-rose-500/30 rounded-xl text-[11px] font-mono font-bold tracking-widest text-rose-300 hover:border-rose-500 transition shadow-sm"
           >
             <span>SALA: {roomId}</span>
-            {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+            {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
           </button>
 
           {/* Botón QR para escanear y entrar de una */}
           <button
             onClick={() => setShowQRModal(true)}
-            className="p-2 bg-slate-900/90 border border-rose-500/40 hover:border-rose-400 rounded-xl text-rose-400 hover:text-white transition shadow-sm flex items-center justify-center"
+            className="p-1.5 bg-slate-900/90 border border-rose-500/40 hover:border-rose-400 rounded-xl text-rose-400 hover:text-white transition shadow-sm flex items-center justify-center"
             title="Mostrar código QR de la sala"
           >
             <QrCode className="w-4 h-4" />
@@ -964,7 +1024,7 @@ export default function Room({
           {/* Botón Sonido (Activar / Silenciar y desbloquear audio) */}
           <button
             onClick={handleToggleMute}
-            className="p-2 bg-slate-900/90 border border-slate-700/70 hover:border-slate-500 rounded-xl text-slate-300 hover:text-white transition shadow-sm flex items-center justify-center"
+            className="p-1.5 bg-slate-900/90 border border-slate-700/70 hover:border-slate-500 rounded-xl text-slate-300 hover:text-white transition shadow-sm flex items-center justify-center"
             title={isMuted ? "Sonido silenciado - Tocá para activar" : "Sonido activo - Tocá para silenciar"}
           >
             {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-amber-400" />}
@@ -973,7 +1033,7 @@ export default function Room({
           {/* Botón Pantalla Completa (Android / iOS / Desktop) */}
           <button
             onClick={handleToggleFullscreen}
-            className="p-2 bg-slate-900/90 border border-slate-700/70 hover:border-slate-500 rounded-xl text-slate-300 hover:text-white transition shadow-sm flex items-center justify-center"
+            className="p-1.5 bg-slate-900/90 border border-slate-700/70 hover:border-slate-500 rounded-xl text-slate-300 hover:text-white transition shadow-sm flex items-center justify-center"
             title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
           >
             {isFullscreen ? <Minimize className="w-4 h-4 text-amber-400" /> : <Maximize className="w-4 h-4" />}
@@ -983,7 +1043,7 @@ export default function Room({
           {!isInstalled && onInstallApp && (
             <button
               onClick={onInstallApp}
-              className="p-2 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 rounded-xl text-white transition shadow-sm flex items-center justify-center"
+              className="p-1.5 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 rounded-xl text-white transition shadow-sm flex items-center justify-center"
               title="Instalar OnFire en tu celular"
             >
               <Download className="w-4 h-4" />
@@ -994,26 +1054,26 @@ export default function Room({
         {isHost || canCheat ? (
           <button
             onClick={() => setShowAdminPanel(!showAdminPanel)}
-            className="p-2.5 bg-slate-900 border border-purple-500/40 rounded-xl text-purple-400 hover:text-purple-300 transition"
+            className="p-2 bg-slate-900 border border-purple-500/40 rounded-xl text-purple-400 hover:text-purple-300 transition"
             title="Ajustes de Sala"
           >
-            <Settings className="w-5 h-5" />
+            <Settings className="w-4 h-4" />
           </button>
         ) : (
-          <div className="w-10" />
+          <div className="w-8" />
         )}
       </header>
 
       {/* BARRA DE NIVEL DE PICANTE Y TRAMPA INTEGRADA */}
-      <div className="w-full max-w-lg z-10 my-2">
-        <div className="p-2 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-lg backdrop-blur-md space-y-2">
+      <div className="w-full max-w-lg z-10 my-0.5 sm:my-1 flex-shrink-0">
+        <div className="p-1 sm:p-1.5 bg-slate-900/90 border border-slate-800 rounded-xl sm:rounded-2xl shadow-lg backdrop-blur-md space-y-1">
           
           {/* Fila 1: Botones de Nivel de Picante (1 a 4) */}
           <div className="flex items-center justify-between gap-1">
             <button
               onClick={() => canCheat && handleChangeSpiceLevel(1)}
               disabled={!canCheat}
-              className={`flex-1 py-1.5 px-1.5 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1 ${
+              className={`flex-1 py-1 px-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-[11px] font-bold transition flex items-center justify-center gap-0.5 sm:gap-1 ${
                 currentSpice === 1
                   ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
                   : 'text-slate-500 hover:text-slate-300'
@@ -1026,7 +1086,7 @@ export default function Room({
             <button
               onClick={() => canCheat && handleChangeSpiceLevel(2)}
               disabled={!canCheat}
-              className={`flex-1 py-1.5 px-1.5 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1 ${
+              className={`flex-1 py-1 px-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-[11px] font-bold transition flex items-center justify-center gap-0.5 sm:gap-1 ${
                 currentSpice === 2
                   ? 'bg-rose-500/20 text-rose-300 border border-rose-500/50 shadow-[0_0_10px_rgba(244,63,94,0.4)]'
                   : 'text-slate-500 hover:text-slate-300'
@@ -1039,7 +1099,7 @@ export default function Room({
             <button
               onClick={() => canCheat && handleChangeSpiceLevel(3)}
               disabled={!canCheat}
-              className={`flex-1 py-1.5 px-1.5 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1 ${
+              className={`flex-1 py-1 px-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-[11px] font-bold transition flex items-center justify-center gap-0.5 sm:gap-1 ${
                 currentSpice === 3
                   ? 'bg-purple-600/30 text-purple-300 border border-purple-500/60 shadow-[0_0_12px_rgba(168,85,247,0.5)]'
                   : 'text-slate-500 hover:text-slate-300'
@@ -1052,7 +1112,7 @@ export default function Room({
             <button
               onClick={() => canCheat && handleChangeSpiceLevel(4)}
               disabled={!canCheat}
-              className={`flex-1 py-1.5 px-1.5 rounded-xl text-[11px] font-black transition flex items-center justify-center gap-1 ${
+              className={`flex-1 py-1 px-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-[11px] font-black transition flex items-center justify-center gap-0.5 sm:gap-1 ${
                 currentSpice === 4
                   ? 'bg-red-600/30 text-red-300 border border-red-500/70 shadow-[0_0_15px_rgba(239,68,68,0.7)]'
                   : 'text-slate-500 hover:text-slate-300'
@@ -1065,36 +1125,34 @@ export default function Room({
 
           {/* Fila 2: Forzar Reto o Verdad (Justo debajo de los botones de picante) */}
           {isCheatActiveVisual && (
-            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
-              <span className="text-[10px] font-bold text-rose-400 flex items-center gap-1 flex-shrink-0">
-                <EyeOff className="w-3.5 h-3.5" /> Forzar Tipo:
+            <div className="pt-1 border-t border-slate-800/80 flex items-center justify-between gap-1">
+              <span className="text-[9px] sm:text-[10px] font-bold text-rose-400 flex items-center gap-1 flex-shrink-0">
+                <EyeOff className="w-3 h-3" /> Forzar:
               </span>
 
-              <div className="flex items-center gap-1.5 flex-1 justify-end">
+              <div className="flex items-center gap-1 flex-1 justify-end">
                 <button
                   type="button"
                   onClick={() => handleToggleCheatType('reto')}
-                  className={`py-1 px-3 rounded-xl text-xs font-black transition flex items-center gap-1 active:scale-95 ${
+                  className={`py-0.5 px-2.5 rounded-lg text-[10px] sm:text-xs font-black transition flex items-center gap-1 active:scale-95 ${
                     roomData.nextType === 'reto'
-                      ? 'bg-rose-600 text-white shadow-[0_0_12px_rgba(244,63,94,0.7)] border border-rose-400'
+                      ? 'bg-rose-600 text-white shadow-[0_0_10px_rgba(244,63,94,0.7)] border border-rose-400'
                       : 'bg-slate-800/90 text-slate-400 hover:text-rose-300 border border-slate-700/70'
                   }`}
                 >
-                  <span>🔥</span>
-                  <span>Reto</span>
+                  <span>🔥 Reto</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => handleToggleCheatType('verdad')}
-                  className={`py-1 px-3 rounded-xl text-xs font-black transition flex items-center gap-1 active:scale-95 ${
+                  className={`py-0.5 px-2.5 rounded-lg text-[10px] sm:text-xs font-black transition flex items-center gap-1 active:scale-95 ${
                     roomData.nextType === 'verdad'
-                      ? 'bg-purple-600 text-white shadow-[0_0_12px_rgba(168,85,247,0.7)] border border-purple-400'
+                      ? 'bg-purple-600 text-white shadow-[0_0_10px_rgba(168,85,247,0.7)] border border-purple-400'
                       : 'bg-slate-800/90 text-slate-400 hover:text-purple-300 border border-slate-700/70'
                   }`}
                 >
-                  <span>💜</span>
-                  <span>Verdad</span>
+                  <span>💜 Verdad</span>
                 </button>
 
                 {roomData.nextType && (
@@ -1104,7 +1162,7 @@ export default function Room({
                     className="p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white"
                     title="Desactivar forzar tipo"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-3 h-3" />
                   </button>
                 )}
               </div>
@@ -1114,7 +1172,7 @@ export default function Room({
         </div>
 
         {/* Indicador de Ronda con Doble Toque Camuflaje */}
-        <div className="flex justify-between items-center px-2 mt-1.5 text-[10px] text-slate-500 font-medium">
+        <div className="flex justify-between items-center px-2 mt-0.5 text-[9px] sm:text-[10px] text-slate-500 font-medium">
           <span 
             onClick={handleRondaDoubleTap}
             className="flex items-center gap-1 cursor-pointer select-none active:opacity-75"
@@ -1123,7 +1181,7 @@ export default function Room({
             <TrendingUp className="w-3 h-3 text-rose-500" /> Ronda #{roomData.roundCount || 0}
           </span>
           <span>
-            {canCheat ? 'Podés cambiar el nivel cuando quieras' : 'El picante sube automáticamente cada 8 rondas'}
+            {canCheat ? 'Podés cambiar nivel' : 'Sube automáticamente cada 8 rondas'}
           </span>
         </div>
       </div>
@@ -1131,38 +1189,38 @@ export default function Room({
       {/* ========================================================== */}
       {/* ÁREA CENTRAL: RULETA CON CORONA SUPERIOR DE RETO/VERDAD    */}
       {/* ========================================================== */}
-      <main className="w-full max-w-lg flex flex-col items-center justify-center my-auto z-10 py-1">
+      <main className="w-full max-w-lg flex-1 flex flex-col items-center justify-around my-auto z-10 py-0.5 min-h-0">
         
         {/* CORONA SUPERIOR DE LA RULETA (Diseño cautivante de RETO o VERDAD) */}
-        <div className="h-10 flex items-center justify-center mb-1">
+        <div className="h-7 flex items-center justify-center mb-0.5 flex-shrink-0">
           <AnimatePresence>
             {currentChallenge && !roomData.isSpinning && (
               <motion.div
-                initial={{ y: -15, opacity: 0, scale: 0.8 }}
+                initial={{ y: -10, opacity: 0, scale: 0.8 }}
                 animate={{ y: 0, opacity: 1, scale: 1 }}
-                exit={{ y: -10, opacity: 0 }}
+                exit={{ y: -8, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 300, damping: 18 }}
-                className={`px-5 py-1.5 rounded-full border-2 shadow-xl flex items-center gap-2 ${
+                className={`px-3 py-0.5 rounded-full border shadow-lg flex items-center gap-1.5 ${
                   currentChallenge.tipo === 'reto'
-                    ? 'bg-gradient-to-r from-rose-600 via-orange-500 to-rose-600 border-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.6)] animate-pulse'
-                    : 'bg-gradient-to-r from-purple-700 via-fuchsia-600 to-purple-700 border-fuchsia-400 shadow-[0_0_20px_rgba(217,70,239,0.6)] animate-pulse'
+                    ? 'bg-gradient-to-r from-rose-600 via-orange-500 to-rose-600 border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.6)] animate-pulse'
+                    : 'bg-gradient-to-r from-purple-700 via-fuchsia-600 to-purple-700 border-fuchsia-400 shadow-[0_0_15px_rgba(217,70,239,0.6)] animate-pulse'
                 }`}
               >
                 {currentChallenge.tipo === 'reto' ? (
                   <>
-                    <Flame className="w-4 h-4 text-amber-200 fill-amber-200" />
-                    <span className="text-xs font-black tracking-widest text-white uppercase drop-shadow-md">
+                    <Flame className="w-3.5 h-3.5 text-amber-200 fill-amber-200" />
+                    <span className="text-[11px] font-black tracking-widest text-white uppercase drop-shadow-md">
                       🔥 RETO PICANTE
                     </span>
-                    <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+                    <Zap className="w-3 h-3 text-amber-300 fill-amber-300" />
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4 text-pink-200 fill-pink-200" />
-                    <span className="text-xs font-black tracking-widest text-white uppercase drop-shadow-md">
+                    <Sparkles className="w-3.5 h-3.5 text-pink-200 fill-pink-200" />
+                    <span className="text-[11px] font-black tracking-widest text-white uppercase drop-shadow-md">
                       💜 VERDAD SIN FILTRO
                     </span>
-                    <Eye className="w-3.5 h-3.5 text-fuchsia-200" />
+                    <Eye className="w-3 h-3 text-fuchsia-200" />
                   </>
                 )}
               </motion.div>
@@ -1171,7 +1229,7 @@ export default function Room({
         </div>
 
         {/* RULETA CENTRAL */}
-        <div className="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center mb-3">
+        <div className="relative w-40 h-40 sm:w-52 sm:h-52 md:w-60 md:h-60 flex items-center justify-center my-auto flex-shrink-0">
           
           {/* ========================================================= */}
           {/* FUEGO RADIAL GIGANTE ENVOLVIENDO LA RULETA (NIVEL 3 y 4)   */}
@@ -1189,23 +1247,23 @@ export default function Room({
               duration: roomData.isSpinning ? 2.8 : 0.4,
               ease: roomData.isSpinning ? "easeInOut" : "easeOut"
             }}
-            className={`absolute -inset-1.5 sm:-inset-2 rounded-full border-4 transition-colors duration-500 ${
+            className={`absolute -inset-1 sm:-inset-1.5 rounded-full border-4 transition-colors duration-500 ${
               currentSpice >= 3
-                ? 'border-orange-500 shadow-[0_0_25px_rgba(249,115,22,0.6)]'
+                ? 'border-orange-500 shadow-[0_0_20px_rgba(249,115,22,0.6)]'
                 : roomData.isSpinning
-                ? 'border-pink-500 shadow-[0_0_20px_rgba(244,63,94,0.4)]'
+                ? 'border-pink-500 shadow-[0_0_18px_rgba(244,63,94,0.4)]'
                 : currentChallenge?.tipo === 'reto'
-                ? 'border-rose-500 shadow-[0_0_25px_rgba(244,63,94,0.6)]'
+                ? 'border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.6)]'
                 : currentChallenge?.tipo === 'verdad'
-                ? 'border-purple-500 shadow-[0_0_25px_rgba(168,85,247,0.6)]'
+                ? 'border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.6)]'
                 : 'border-slate-800'
             }`}
           />
 
           {/* Círculo central de la ruleta */}
-          <div className={`w-52 h-52 sm:w-60 sm:h-60 rounded-full border flex flex-col items-center justify-center p-5 text-center relative overflow-hidden z-10 transition-all ${
+          <div className={`w-32 h-32 sm:w-42 sm:h-42 md:w-48 md:h-48 rounded-full border flex flex-col items-center justify-center p-2 sm:p-3 text-center relative overflow-hidden z-10 transition-all ${
             currentSpice >= 3
-              ? 'bg-gradient-to-b from-red-950 via-slate-950 to-red-950 border-amber-500/80 shadow-[inset_0_0_35px_rgba(239,68,68,0.7)]'
+              ? 'bg-gradient-to-b from-red-950 via-slate-950 to-red-950 border-amber-500/80 shadow-[inset_0_0_25px_rgba(239,68,68,0.7)]'
               : 'bg-gradient-to-b from-slate-900 to-slate-950 border-slate-700/80 shadow-inner'
           }`}>
             
@@ -1220,11 +1278,11 @@ export default function Room({
                 animate={{ scale: 1, opacity: 1 }}
                 className="flex flex-col items-center"
               >
-                <Flame className="w-9 h-9 text-rose-500 animate-pulse mb-2" />
-                <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-fuchsia-400 tracking-wide uppercase px-2 line-clamp-1">
+                <Flame className="w-7 h-7 sm:w-8 sm:h-8 text-rose-500 animate-pulse mb-1" />
+                <span className="text-base sm:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-fuchsia-400 tracking-wide uppercase px-1 line-clamp-1">
                   {currentPlayerInAnimation.name}
                 </span>
-                <span className="text-xs text-slate-400 mt-1 font-medium">Buscando víctima...</span>
+                <span className="text-[9px] sm:text-[10px] text-slate-400 mt-0.5 font-medium">Buscando víctima...</span>
               </motion.div>
             ) : roomData.currentResult ? (
               <motion.div
@@ -1232,43 +1290,43 @@ export default function Room({
                 initial={{ scale: 0.6, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 280, damping: 16 }}
-                className="flex flex-col items-center w-full px-2"
+                className="flex flex-col items-center w-full px-1"
               >
                 {/* MENSAJE PERSONALIZADO SEGÚN QUIÉN SOS */}
                 {isMeActor ? (
                   <div className="flex flex-col items-center">
-                    <span className="px-2.5 py-0.5 bg-rose-500/30 text-rose-300 text-[11px] font-black uppercase rounded-full border border-rose-500/50 mb-1 animate-pulse">
+                    <span className="px-2 py-0.5 bg-rose-500/30 text-rose-300 text-[9px] font-black uppercase rounded-full border border-rose-500/50 mb-0.5 animate-pulse">
                       🔥 ¡TE TOCA A VOS!
                     </span>
-                    <h2 className="text-2xl sm:text-3xl font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] truncate max-w-full">
+                    <h2 className="text-base sm:text-xl font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] truncate max-w-full">
                       {roomData.currentResult.name}
                     </h2>
                     {roomData.currentPair && (
-                      <span className="text-xs text-pink-300 font-bold mt-1">
-                        Hacé el reto con: <strong className="underline">{roomData.currentPair.name}</strong>
+                      <span className="text-[10px] text-pink-300 font-bold mt-0.5 truncate max-w-full">
+                        Con: <strong className="underline">{roomData.currentPair.name}</strong>
                       </span>
                     )}
                   </div>
                 ) : isMeTarget ? (
                   <div className="flex flex-col items-center">
-                    <span className="px-2.5 py-0.5 bg-purple-500/30 text-purple-300 text-[11px] font-black uppercase rounded-full border border-purple-500/50 mb-1 animate-pulse">
-                      💋 ¡LE TOCÓ A {roomData.currentResult.name.toUpperCase()} HACER CON VOS!
+                    <span className="px-2 py-0.5 bg-purple-500/30 text-purple-300 text-[9px] font-black uppercase rounded-full border border-purple-500/50 mb-0.5 animate-pulse">
+                      💋 ¡HACER CON VOS!
                     </span>
-                    <h2 className="text-xl sm:text-2xl font-black text-purple-200 truncate max-w-full">
+                    <h2 className="text-sm sm:text-lg font-black text-purple-200 truncate max-w-full">
                       {roomData.currentResult.name} ⚡ Vos
                     </h2>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center">
-                    <span className="text-[11px] uppercase font-bold tracking-widest text-rose-400 mb-1 flex items-center gap-1">
-                      <Sparkles className="w-3.5 h-3.5" /> ¡Le Toca A!
+                    <span className="text-[9px] uppercase font-bold tracking-widest text-rose-400 mb-0.5 flex items-center gap-1">
+                      <Sparkles className="w-2.5 h-2.5" /> ¡Le Toca A!
                     </span>
-                    <h2 className="text-2xl sm:text-3xl font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] truncate max-w-full">
+                    <h2 className="text-base sm:text-xl font-black text-white drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] truncate max-w-full">
                       {roomData.currentResult.name}
                     </h2>
                     {roomData.currentPair && (
-                      <div className="mt-2 pt-2 border-t border-slate-800 flex items-center gap-1.5 text-xs text-purple-300 font-medium">
-                        <HeartHandshake className="w-3.5 h-3.5 text-pink-400 flex-shrink-0" />
+                      <div className="mt-0.5 pt-0.5 border-t border-slate-800 flex items-center gap-1 text-[10px] text-purple-300 font-medium">
+                        <HeartHandshake className="w-2.5 h-2.5 text-pink-400 flex-shrink-0" />
                         <span className="truncate">Con: <strong className="text-pink-300">{roomData.currentPair.name}</strong></span>
                       </div>
                     )}
@@ -1277,9 +1335,9 @@ export default function Room({
               </motion.div>
             ) : (
               <div className="flex flex-col items-center text-slate-400">
-                <Flame className="w-10 h-10 text-rose-500/60 mb-2" />
-                <span className="text-sm font-semibold">Listo para jugar</span>
-                <span className="text-xs text-slate-500 mt-0.5">Tocá girar ruleta</span>
+                <Flame className="w-7 h-7 sm:w-8 sm:h-8 text-rose-500/60 mb-1" />
+                <span className="text-xs sm:text-sm font-semibold">Listo para jugar</span>
+                <span className="text-[9px] text-slate-500">Tocá girar ruleta</span>
               </div>
             )}
           </div>
@@ -1289,42 +1347,40 @@ export default function Room({
         <AnimatePresence>
           {currentChallenge && !roomData.isSpinning && (
             <motion.div
-              initial={{ opacity: 0, y: 15 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className={`w-full glass-card p-4 sm:p-5 rounded-2xl mb-3 text-center border shadow-2xl ${
+              exit={{ opacity: 0, y: -6 }}
+              className={`w-full glass-card p-2 sm:p-3 rounded-xl sm:rounded-2xl my-0.5 sm:my-1 text-center border shadow-xl flex-shrink-0 max-h-24 sm:max-h-28 overflow-y-auto ${
                 currentChallenge.tipo === 'reto'
-                  ? 'border-rose-500/40 shadow-[0_0_30px_rgba(244,63,94,0.2)] bg-gradient-to-b from-slate-900/90 to-rose-950/40'
-                  : 'border-fuchsia-500/40 shadow-[0_0_30px_rgba(217,70,239,0.2)] bg-gradient-to-b from-slate-900/90 to-purple-950/40'
+                  ? 'border-rose-500/40 shadow-[0_0_20px_rgba(244,63,94,0.2)] bg-gradient-to-b from-slate-900/90 to-rose-950/40'
+                  : 'border-fuchsia-500/40 shadow-[0_0_20px_rgba(217,70,239,0.2)] bg-gradient-to-b from-slate-900/90 to-purple-950/40'
               }`}
             >
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 border border-slate-700 text-slate-300">
+              <div className="flex items-center justify-center gap-2 mb-0.5">
+                <span className="px-2 py-0.2 rounded-full text-[9px] font-bold bg-slate-800 border border-slate-700 text-slate-300">
                   {currentSpice === 1 ? '🌶️ Suave' : currentSpice === 2 ? '🔥 Caliente' : currentSpice === 3 ? '💀 Fuego' : '💀🔥 Extremo'}
                 </span>
               </div>
 
-              <p className="text-base sm:text-lg font-semibold text-slate-100 font-serif italic leading-relaxed">
+              <p className="text-xs sm:text-sm md:text-base font-semibold text-slate-100 font-serif italic leading-snug">
                 "{currentChallenge.texto}"
               </p>
 
               {/* COUNTDOWN DE 10 SEGUNDOS CON BARRA ARDIENTE */}
-              <div className="mt-3.5 pt-3 border-t border-slate-800/80 flex flex-col items-center gap-1.5">
-                <div className="flex items-center gap-2">
-                  {countdown > 0 ? (
-                    <span className="px-3.5 py-1 bg-gradient-to-r from-amber-500/25 via-rose-500/25 to-purple-500/25 border border-amber-500/50 rounded-full text-xs font-black text-amber-300 flex items-center gap-1.5 shadow-[0_0_20px_rgba(245,158,11,0.5)] animate-pulse">
-                      <Clock className="w-3.5 h-3.5 text-amber-300 animate-spin" />
-                      ⏱️ TIEMPO: {countdown}s
-                    </span>
-                  ) : (
-                    <span className="px-3.5 py-1 bg-slate-800/90 border border-slate-700 text-slate-400 rounded-full text-xs font-bold flex items-center gap-1.5">
-                      ⏰ ¡TIEMPO CUMPLIDO!
-                    </span>
-                  )}
-                </div>
+              <div className="mt-1 pt-1 border-t border-slate-800/80 flex items-center justify-center gap-2">
+                {countdown > 0 ? (
+                  <span className="px-2 py-0.2 bg-gradient-to-r from-amber-500/25 via-rose-500/25 to-purple-500/25 border border-amber-500/50 rounded-full text-[9px] sm:text-[10px] font-black text-amber-300 flex items-center gap-1 shadow-[0_0_12px_rgba(245,158,11,0.5)] animate-pulse">
+                    <Clock className="w-2.5 h-2.5 text-amber-300 animate-spin" />
+                    ⏱️ TIEMPO: {countdown}s
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.2 bg-slate-800/90 border border-slate-700 text-slate-400 rounded-full text-[9px] sm:text-[10px] font-bold flex items-center gap-1">
+                    ⏰ ¡TIEMPO CUMPLIDO!
+                  </span>
+                )}
 
                 {countdown > 0 && (
-                  <div className="w-48 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700/60 mt-0.5">
+                  <div className="w-24 sm:w-36 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700/60">
                     <motion.div
                       animate={{ width: `${Math.max(0, (countdown / 10) * 100)}%` }}
                       transition={{ duration: 0.9, ease: "linear" }}
@@ -1341,9 +1397,9 @@ export default function Room({
         <button
           onClick={handleSpin}
           disabled={roomData.isSpinning || playersList.length < 2}
-          className="w-full py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 hover:from-rose-600 hover:to-purple-700 text-white font-black text-lg rounded-2xl shadow-[0_0_30px_rgba(244,63,94,0.4)] transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 uppercase tracking-wider"
+          className="w-full py-2.5 sm:py-3.5 bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 hover:from-rose-600 hover:to-purple-700 text-white font-black text-sm sm:text-base md:text-lg rounded-xl sm:rounded-2xl shadow-[0_0_20px_rgba(244,63,94,0.4)] transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 uppercase tracking-wider flex-shrink-0"
         >
-          <Zap className="w-5 h-5 fill-white" />
+          <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-white" />
           {roomData.isSpinning ? 'Eligiendo víctimas...' : 'Girar Ruleta'}
         </button>
       </main>
@@ -1351,31 +1407,31 @@ export default function Room({
       {/* BARRA FLOTANTE DE TRAMPA COMPLETA (Víctima 1 + Víctima 2 + RETO FIJADO + TIPO FORZADO) */}
       {isCheatActiveVisual && (target1Player || target2Player || fixedChallenge || roomData.nextType) && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-lg mb-3 p-2.5 bg-slate-900/95 border border-rose-500/50 rounded-2xl flex flex-col gap-2 text-xs z-20 shadow-[0_0_15px_rgba(244,63,94,0.3)] backdrop-blur-md"
+          className="w-full max-w-lg mb-1 p-2 bg-slate-900/95 border border-rose-500/50 rounded-xl flex flex-col gap-1.5 text-xs z-20 shadow-[0_0_15px_rgba(244,63,94,0.3)] backdrop-blur-md flex-shrink-0"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 truncate">
               <span className="font-bold text-rose-400 flex items-center gap-1">
-                <EyeOff className="w-3.5 h-3.5" /> Trampa:
+                <EyeOff className="w-3 h-3" /> Trampa:
               </span>
               {target1Player ? (
-                <span className="px-2 py-0.5 bg-rose-500/20 border border-rose-500/40 rounded-lg text-rose-300 truncate font-semibold">
+                <span className="px-1.5 py-0.2 bg-rose-500/20 border border-rose-500/40 rounded text-rose-300 truncate font-semibold text-[10px]">
                   🎯 {target1Player.name}
                 </span>
               ) : (
-                <span className="text-[10px] text-slate-500">🎯 (Toca 1º)</span>
+                <span className="text-[9px] text-slate-500">🎯 (1º)</span>
               )}
               {target2Player ? (
-                <span className="px-2 py-0.5 bg-purple-500/20 border border-purple-500/40 rounded-lg text-purple-300 truncate font-semibold">
-                  💋 con {target2Player.name}
+                <span className="px-1.5 py-0.2 bg-purple-500/20 border border-purple-500/40 rounded text-purple-300 truncate font-semibold text-[10px]">
+                  💋 {target2Player.name}
                 </span>
               ) : (
-                <span className="text-[10px] text-slate-500">💋 (Toca 2º)</span>
+                <span className="text-[9px] text-slate-500">💋 (2º)</span>
               )}
               {roomData.nextType && (
-                <span className="px-2 py-0.5 bg-pink-500/20 border border-pink-500/40 rounded-lg text-pink-300 truncate font-semibold">
+                <span className="px-1.5 py-0.2 bg-pink-500/20 border border-pink-500/40 rounded text-pink-300 truncate font-semibold text-[10px]">
                   {roomData.nextType === 'reto' ? '🔥 Reto' : '💜 Verdad'}
                 </span>
               )}
@@ -1384,68 +1440,68 @@ export default function Room({
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setShowCheatChallengeModal(true)}
-                className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition ${
+                className={`px-1.5 py-0.5 rounded text-[9px] font-bold flex items-center gap-0.5 transition ${
                   fixedChallenge 
                     ? 'bg-pink-600 text-white shadow-[0_0_8px_rgba(236,72,153,0.5)]' 
                     : 'bg-slate-800 hover:bg-slate-700 text-pink-300 border border-pink-500/30'
                 }`}
               >
-                <FileText className="w-3 h-3" />
+                <FileText className="w-2.5 h-2.5" />
                 {fixedChallenge ? 'Reto Armado ✓' : '+ Fijar Reto'}
               </button>
 
               <button
                 onClick={handleClearTrap}
-                className="p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white"
+                className="p-0.5 hover:bg-slate-800 rounded text-slate-400 hover:text-white"
                 title="Limpiar toda la trampa"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3 h-3" />
               </button>
             </div>
           </div>
 
           {/* Preview del reto armado */}
           {fixedChallenge && (
-            <div className="px-2 py-1 bg-slate-950/80 rounded-lg border border-pink-500/30 text-[11px] text-slate-300 flex items-center justify-between">
+            <div className="px-1.5 py-0.5 bg-slate-950/80 rounded border border-pink-500/30 text-[10px] text-slate-300 flex items-center justify-between">
               <span className="truncate italic">"{fixedChallenge.texto}"</span>
-              <span className="text-[9px] font-bold uppercase text-pink-400 ml-1.5">{fixedChallenge.tipo}</span>
+              <span className="text-[9px] font-bold uppercase text-pink-400 ml-1">{fixedChallenge.tipo}</span>
             </div>
           )}
         </motion.div>
       )}
 
       {/* LISTA DE JUGADORES */}
-      <footer className="w-full max-w-lg z-10">
-        <div className="flex items-center justify-between text-xs text-slate-400 font-bold uppercase tracking-wider mb-2 px-1">
-          <span className="flex items-center gap-1.5">
-            <Users className="w-4 h-4 text-purple-400" />
+      <footer className="w-full max-w-lg z-10 flex-shrink-0 mt-0.5">
+        <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-1 px-1">
+          <span className="flex items-center gap-1">
+            <Users className="w-3 h-3 text-purple-400" />
             Jugadores ({playersList.length})
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {isCheatActiveVisual && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <button
                   onClick={() => setShowCheatChallengeModal(true)}
-                  className="text-[10px] text-pink-400 hover:text-pink-300 flex items-center gap-0.5 font-bold bg-pink-500/10 px-2 py-0.5 rounded-lg border border-pink-500/30"
+                  className="text-[9px] text-pink-400 hover:text-pink-300 flex items-center gap-0.5 font-bold bg-pink-500/10 px-1.5 py-0.5 rounded border border-pink-500/30"
                 >
-                  <FileText className="w-3 h-3" /> Reto Trampa
+                  <FileText className="w-2.5 h-2.5" /> Reto Trampa
                 </button>
-                <span className="text-[10px] text-rose-400/90 font-medium">
-                  (1º Le toca, 2º Con quién)
-                </span>
               </div>
             )}
             <button
               onClick={() => setNewPlayerModal(true)}
-              className="text-[11px] text-purple-300 hover:text-purple-100 flex items-center gap-0.5 font-bold"
+              className="text-[10px] text-purple-300 hover:text-purple-100 flex items-center gap-0.5 font-bold"
             >
-              <Plus className="w-3.5 h-3.5" /> Sumar
+              <Plus className="w-3 h-3" /> Sumar
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
-          {playersList.map((player) => {
+        <div className="grid grid-cols-2 gap-1.5 max-h-20 sm:max-h-28 overflow-y-auto pr-0.5">
+          {playersList.map((player, idx) => {
+            const isSpinningSelected = roomData.isSpinning && displayIndex === idx;
+            const isResultWinner = !roomData.isSpinning && (roomData.currentResult?.id === player.id || roomData.currentResult?.claimedBy === player.id);
+            const isResultPair = !roomData.isSpinning && (roomData.currentPair?.id === player.id || roomData.currentPair?.claimedBy === player.id);
             const isMe = player.claimedBy === playerId || player.id === playerId;
             const isTarget1 = isCheatActiveVisual && roomData.nextTarget === player.id;
             const isTarget2 = isCheatActiveVisual && roomData.nextPair === player.id;
@@ -1455,21 +1511,33 @@ export default function Room({
               <div
                 key={player.id}
                 onClick={() => canCheat && handleToggleCheatPlayer(player)}
-                className={`p-2.5 rounded-xl border text-sm font-medium flex items-center justify-between transition-all select-none ${
+                className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl border text-xs font-medium flex items-center justify-between transition-all duration-150 select-none ${
                   canCheat ? 'cursor-pointer' : ''
                 } ${
-                  isTarget1
+                  isSpinningSelected
+                    ? 'bg-gradient-to-r from-rose-600/40 via-amber-500/40 to-rose-600/40 border-amber-300 shadow-[0_0_18px_rgba(245,158,11,0.9)] scale-105 text-amber-200 font-black ring-2 ring-amber-400 z-10'
+                    : isResultWinner
+                    ? 'bg-rose-950/80 border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.6)] ring-2 ring-rose-500 font-black text-rose-200'
+                    : isResultPair
+                    ? 'bg-purple-950/80 border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.6)] ring-2 ring-purple-500 font-black text-purple-200'
+                    : isTarget1
                     ? 'bg-rose-950/70 border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.3)] ring-1 ring-rose-500'
                     : isTarget2
                     ? 'bg-purple-950/70 border-purple-500 shadow-[0_0_12px_rgba(168,85,247,0.3)] ring-1 ring-purple-500'
                     : isUnclaimed
                     ? 'bg-slate-900/40 border-dashed border-slate-800 text-slate-400'
-                    : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
+                    : 'bg-slate-900/80 border-slate-800 hover:border-slate-700 text-slate-200'
                 }`}
               >
-                <div className="flex items-center gap-2 truncate">
-                  <div className={`w-2 h-2 rounded-full ${isMe ? 'bg-emerald-400' : isUnclaimed ? 'bg-amber-500/50' : 'bg-slate-600'}`} />
-                  <span className={`truncate ${isMe ? 'text-emerald-300 font-bold' : isUnclaimed ? 'text-slate-400 italic' : 'text-slate-200'}`}>
+                <div className="flex items-center gap-1.5 truncate">
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                    isSpinningSelected ? 'bg-amber-300 animate-ping' :
+                    isMe ? 'bg-emerald-400' : isUnclaimed ? 'bg-amber-500/50' : 'bg-slate-600'
+                  }`} />
+                  <span className={`truncate ${
+                    isSpinningSelected ? 'text-amber-200 font-black text-xs' :
+                    isMe ? 'text-emerald-300 font-bold' : isUnclaimed ? 'text-slate-400 italic' : 'text-slate-200'
+                  }`}>
                     {player.name} {isMe && '(Vos)'}
                   </span>
                 </div>
@@ -1479,13 +1547,13 @@ export default function Room({
                   {isCheatActiveVisual && (
                     <>
                       {isTarget1 && (
-                        <span className="px-1.5 py-0.5 bg-rose-500 text-white text-[10px] font-black rounded-md">
-                          🎯 1º
+                        <span className="px-1.5 py-0.2 bg-rose-500 text-white rounded text-[9px] font-black">
+                          1º
                         </span>
                       )}
                       {isTarget2 && (
-                        <span className="px-1.5 py-0.5 bg-purple-500 text-white text-[10px] font-black rounded-md">
-                          💋 2º
+                        <span className="px-1.5 py-0.2 bg-purple-500 text-white rounded text-[9px] font-black">
+                          2º
                         </span>
                       )}
                     </>
@@ -1502,20 +1570,13 @@ export default function Room({
                       className="p-1 text-slate-500 hover:text-rose-400 transition"
                       title="Eliminar jugador"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-3 h-3" />
                     </button>
                   )}
                 </div>
               </div>
             );
           })}
-        </div>
-
-        {/* Versión activa */}
-        <div className="flex justify-center mt-2">
-          <span className="px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-mono text-slate-500">
-            {appVersion}
-          </span>
         </div>
       </footer>
 
