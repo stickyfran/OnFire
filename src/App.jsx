@@ -227,15 +227,62 @@ export default function App() {
     checkLastSession();
   }, []);
 
-  const handleAcceptReconnect = () => {
+  const handleAcceptReconnect = async () => {
     if (!reconnectPrompt) return;
-    setRoomCodeInput(reconnectPrompt.roomCode);
-    setDisplayName(reconnectPrompt.playerName);
-    setRawInputName(reconnectPrompt.rawName || reconnectPrompt.playerName);
-    setIsHost(reconnectPrompt.isHost);
-    setCanCheat(reconnectPrompt.canCheat);
-    setCurrentRoom(reconnectPrompt.roomCode);
-    setReconnectPrompt(null);
+    setLoading(true);
+    setErrorMsg('');
+    try {
+      const code = reconnectPrompt.roomCode;
+      const roomRef = doc(db, 'rooms', code);
+      const roomSnap = await getDoc(roomRef);
+
+      if (!roomSnap.exists()) {
+        setErrorMsg('La sala anterior ya no existe o fue cerrada.');
+        localStorage.removeItem('onfire_active_session');
+        setReconnectPrompt(null);
+        setLoading(false);
+        return;
+      }
+
+      const rData = roomSnap.data();
+      let updatedPlayers = [...(rData.players || [])];
+      const playerIdx = updatedPlayers.findIndex(
+        p => p.id === playerId || p.name.trim().toLowerCase() === reconnectPrompt.playerName.trim().toLowerCase()
+      );
+
+      if (playerIdx !== -1) {
+        updatedPlayers[playerIdx] = {
+          ...updatedPlayers[playerIdx],
+          id: playerId,
+          name: reconnectPrompt.playerName,
+          isClaimed: true,
+          claimedBy: playerId
+        };
+      } else {
+        updatedPlayers.push({
+          id: playerId,
+          name: reconnectPrompt.playerName,
+          isClaimed: true,
+          claimedBy: playerId,
+          joinedAt: new Date().toISOString()
+        });
+      }
+
+      await updateDoc(roomRef, { players: updatedPlayers });
+
+      setRoomCodeInput(reconnectPrompt.roomCode);
+      setDisplayName(reconnectPrompt.playerName);
+      setRawInputName(reconnectPrompt.rawName || reconnectPrompt.playerName);
+      setIsHost(reconnectPrompt.isHost || rData.hostId === playerId);
+      setCanCheat(reconnectPrompt.canCheat);
+      setCurrentRoom(reconnectPrompt.roomCode);
+      setReconnectPrompt(null);
+    } catch (err) {
+      console.error("Error al reconectar con la sala:", err);
+      setErrorMsg('Error al reconectar con la sala.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDismissReconnect = () => {
@@ -388,8 +435,6 @@ export default function App() {
       }
 
       const data = roomSnap.data();
-      setRoomDataCache(data);
-
       setAllRoomPlayers(data.players || []);
       setStepJoin('choose_name');
     } catch (err) {
@@ -406,7 +451,7 @@ export default function App() {
     await checkRoomByCode(roomCodeInput);
   };
 
-  // 3. ELEGIR NOMBRE O INGRESAR UNO NUEVO (SIN BLOQUEOS)
+  // 3. ELEGIR NOMBRE O INGRESAR UNO NUEVO (SIN BLOQUEOS NI DUPLICADOS)
   const handleClaimOrJoin = async (selectedSlotName = null) => {
     const finalRawName = selectedSlotName || rawInputName.trim();
 
@@ -443,14 +488,20 @@ export default function App() {
         );
 
         if (slotIndex !== -1) {
+          // Reclamar el slot seleccionado
           updatedPlayers[slotIndex] = {
             ...updatedPlayers[slotIndex],
             id: playerId,
+            name: selectedSlotName.trim(),
             isClaimed: true,
             claimedBy: playerId,
             joinedAt: new Date().toISOString()
           };
+          // Limpiar cualquier otro slot residual que tuviera este mismo playerId
+          updatedPlayers = updatedPlayers.filter((p, idx) => idx === slotIndex || p.id !== playerId);
         } else {
+          // Si no existía, remover posible duplicado y agregar nuevo
+          updatedPlayers = updatedPlayers.filter(p => p.id !== playerId);
           updatedPlayers.push({
             id: playerId,
             name: cleanName,
@@ -468,11 +519,14 @@ export default function App() {
           updatedPlayers[existingIndex] = {
             ...updatedPlayers[existingIndex],
             id: playerId,
+            name: cleanName,
             isClaimed: true,
             claimedBy: playerId,
             joinedAt: new Date().toISOString()
           };
+          updatedPlayers = updatedPlayers.filter((p, idx) => idx === existingIndex || p.id !== playerId);
         } else {
+          updatedPlayers = updatedPlayers.filter(p => p.id !== playerId);
           updatedPlayers.push({
             id: playerId,
             name: cleanName,

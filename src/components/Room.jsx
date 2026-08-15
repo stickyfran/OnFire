@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { ALL_CHALLENGES } from '../data/challenges';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import { 
@@ -434,6 +435,8 @@ export default function Room({
   }, [isFullscreen, resetHeaderTimer]);
 
   const spinInterval = useRef(null);
+  const spinTimeoutRef = useRef(null);
+  const isSpinningLockRef = useRef(false);
 
   // Estado de Sonido (Persistente con desbloqueo para iOS y Firefox Android)
   const [isMuted, setIsMuted] = useState(() => {
@@ -466,18 +469,29 @@ export default function Room({
   useEffect(() => {
     if (!roomId) return;
     const roomRef = doc(db, 'rooms', roomId);
-    const unsubscribe = onSnapshot(roomRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setRoomData(data);
+    const unsubscribe = onSnapshot(
+      roomRef, 
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setRoomData(data);
+        } else {
+          // La sala fue cerrada o eliminada por el anfitrión
+          alert('La sala ya no existe o fue cerrada.');
+          onLeave();
+        }
+      },
+      (err) => {
+        console.error("Error sincronizando sala en tiempo real:", err);
       }
-    });
+    );
 
     return () => {
       unsubscribe();
       if (spinInterval.current) clearInterval(spinInterval.current);
+      if (spinTimeoutRef.current) clearTimeout(spinTimeoutRef.current);
     };
-  }, [roomId]);
+  }, [roomId, onLeave]);
 
   // Animación del giro sincronizada
   useEffect(() => {
@@ -491,6 +505,7 @@ export default function Room({
         }, 90);
       }
     } else {
+      isSpinningLockRef.current = false;
       if (spinInterval.current) {
         clearInterval(spinInterval.current);
         spinInterval.current = null;
@@ -524,9 +539,9 @@ export default function Room({
     }
   }, [roomData?.currentChallenge, roomData?.isSpinning, isMuted]);
 
-  // Temporizador / Countdown de 10 segundos y control de animaciones ardientes
-  const [countdown, setCountdown] = useState(0);
-  const [isFireActive, setIsFireActive] = useState(false);
+  // Temporizador de 10 segundos para cumplir el reto con desvanecimiento de fuego
+  const [countdown, setCountdown] = useState(10);
+  const [isFireActive, setIsFireActive] = useState(true);
 
   useEffect(() => {
     if (roomData?.currentChallenge && !roomData?.isSpinning) {
@@ -578,18 +593,24 @@ export default function Room({
   // Cambiar Nivel de Picante (Exclusivo Papito)
   const handleChangeSpiceLevel = async (newLevel) => {
     if (!canCheat) return;
-    const roomRef = doc(db, 'rooms', roomId);
-    await updateDoc(roomRef, { spiceLevel: newLevel });
+    try {
+      const roomRef = doc(db, 'rooms', roomId);
+      await updateDoc(roomRef, { spiceLevel: newLevel });
+    } catch (err) {
+      console.error("Error al cambiar nivel de picante:", err);
+    }
   };
 
   // Girar Ruleta
   const handleSpin = async () => {
     unlockAudioContext();
+    if (isSpinningLockRef.current || roomData?.isSpinning) return;
     if (!roomData || !roomData.players || roomData.players.length < 2) {
       alert('¡Hacen falta al menos 2 jugadores en la sala para girar!');
       return;
     }
 
+    isSpinningLockRef.current = true;
     const roomRef = doc(db, 'rooms', roomId);
     const newRoundCount = (roomData.roundCount || 0) + 1;
 
@@ -603,91 +624,105 @@ export default function Room({
       currentSpice = 2;
     }
 
-    // 1. Iniciar giro en Firestore
-    await updateDoc(roomRef, {
-      isSpinning: true,
-      currentResult: null,
-      currentPair: null,
-      currentChallenge: null,
-      roundCount: newRoundCount,
-      spiceLevel: currentSpice
-    });
+    try {
+      // 1. Iniciar giro en Firestore
+      await updateDoc(roomRef, {
+        isSpinning: true,
+        currentResult: null,
+        currentPair: null,
+        currentChallenge: null,
+        roundCount: newRoundCount,
+        spiceLevel: currentSpice
+      });
 
-    // 2. Determinar Víctima 1 (Actor)
-    const players = roomData.players;
-    let actor = null;
-    let target = null;
+      // 2. Determinar Víctima 1 (Actor)
+      const players = roomData.players || [];
+      let actor = null;
+      let target = null;
 
-    if (roomData.nextTarget) {
-      actor = players.find(p => p.id === roomData.nextTarget);
-    }
-    if (!actor) {
-      const randomIdx = Math.floor(Math.random() * players.length);
-      actor = players[randomIdx];
-    }
+      if (roomData.nextTarget) {
+        actor = players.find(p => p.id === roomData.nextTarget);
+      }
+      if (!actor && players.length > 0) {
+        const randomIdx = Math.floor(Math.random() * players.length);
+        actor = players[randomIdx];
+      }
 
-    // 3. Determinar Víctima 2 (Pareja)
-    const otherPlayers = players.filter(p => p.id !== actor.id);
-    if (roomData.nextPair) {
-      target = players.find(p => p.id === roomData.nextPair);
-    }
-    if (!target && otherPlayers.length > 0) {
-      const randomTargetIdx = Math.floor(Math.random() * otherPlayers.length);
-      target = otherPlayers[randomTargetIdx];
-    }
+      // 3. Determinar Víctima 2 (Pareja)
+      const otherPlayers = players.filter(p => p.id !== actor?.id);
+      if (roomData.nextPair) {
+        target = players.find(p => p.id === roomData.nextPair);
+      }
+      if (!target && otherPlayers.length > 0) {
+        const randomTargetIdx = Math.floor(Math.random() * otherPlayers.length);
+        target = otherPlayers[randomTargetIdx];
+      }
 
-    // 4. Determinar Reto (Fijado por Trampa o Aleatorio según Nivel de Picante)
-    let challengeObj = null;
+      // 4. Determinar Reto (Fijado por Trampa o Aleatorio según Nivel de Picante)
+      let challengeObj = null;
 
-    if (roomData.nextChallenge) {
-      // RETO TRAMPA FIJADO POR PAPITO
-      challengeObj = {
-        tipo: roomData.nextChallenge.tipo || 'reto',
-        texto: formatChallenge(roomData.nextChallenge.texto, actor?.name, target?.name)
-      };
-    } else {
-      // Aleatorio según Nivel de Picante
-      const allChallenges = roomData.challenges || [];
-      let filteredChallenges = allChallenges.filter(c => c.level === currentSpice);
-      if (filteredChallenges.length === 0) filteredChallenges = allChallenges;
+      if (roomData.nextChallenge) {
+        // RETO TRAMPA FIJADO POR PAPITO
+        challengeObj = {
+          tipo: roomData.nextChallenge.tipo || 'reto',
+          texto: formatChallenge(roomData.nextChallenge.texto, actor?.name, target?.name)
+        };
+      } else {
+        // Aleatorio según Nivel de Picante
+        const allChallenges = (roomData.challenges && roomData.challenges.length > 0) 
+          ? roomData.challenges 
+          : ALL_CHALLENGES;
+        let filteredChallenges = allChallenges.filter(c => c.level === currentSpice);
+        if (filteredChallenges.length === 0) filteredChallenges = allChallenges;
 
-      // Si Papito forzó Reto o Verdad (nextType)
-      if (roomData.nextType) {
-        const byType = filteredChallenges.filter(c => c.tipo?.toLowerCase() === roomData.nextType?.toLowerCase());
-        if (byType.length > 0) {
-          filteredChallenges = byType;
+        // Si Papito forzó Reto o Verdad (nextType)
+        if (roomData.nextType) {
+          const byType = filteredChallenges.filter(c => c.tipo?.toLowerCase() === roomData.nextType?.toLowerCase());
+          if (byType.length > 0) {
+            filteredChallenges = byType;
+          }
+        }
+
+        const pool = filteredChallenges;
+
+        if (pool.length > 0) {
+          const cIdx = Math.floor(Math.random() * pool.length);
+          const rawC = pool[cIdx];
+          challengeObj = {
+            ...rawC,
+            texto: formatChallenge(rawC.texto, actor?.name, target?.name)
+          };
         }
       }
 
-      const pool = filteredChallenges;
-
-      if (pool.length > 0) {
-        const cIdx = Math.floor(Math.random() * pool.length);
-        const rawC = pool[cIdx];
-        challengeObj = {
-          ...rawC,
-          texto: formatChallenge(rawC.texto, actor?.name, target?.name)
-        };
-      }
-    }
-
-    // 5. Limpiar toda la trampa en Firestore para la siguiente ronda
-    await updateDoc(roomRef, {
-      nextTarget: null,
-      nextPair: null,
-      nextChallenge: null,
-      nextType: null
-    });
-
-    // 6. Publicar resultado sincronizado tras 3.2s
-    setTimeout(async () => {
+      // 5. Limpiar toda la trampa en Firestore para la siguiente ronda
       await updateDoc(roomRef, {
-        isSpinning: false,
-        currentResult: actor,
-        currentPair: target || null,
-        currentChallenge: challengeObj
+        nextTarget: null,
+        nextPair: null,
+        nextChallenge: null,
+        nextType: null
       });
-    }, 3200);
+
+      // 6. Publicar resultado sincronizado tras 3.2s
+      if (spinTimeoutRef.current) clearTimeout(spinTimeoutRef.current);
+      spinTimeoutRef.current = setTimeout(async () => {
+        try {
+          await updateDoc(roomRef, {
+            isSpinning: false,
+            currentResult: actor,
+            currentPair: target || null,
+            currentChallenge: challengeObj
+          });
+        } catch (err) {
+          console.error("Error publicando resultado del giro:", err);
+        } finally {
+          isSpinningLockRef.current = false;
+        }
+      }, 3200);
+    } catch (err) {
+      console.error("Error al girar ruleta:", err);
+      isSpinningLockRef.current = false;
+    }
   };
 
   // MODO TRAMPA: Fijar víctimas 1 y 2
