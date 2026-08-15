@@ -245,8 +245,18 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
     } else {
       // Aleatorio según Nivel de Picante
       const allChallenges = roomData.challenges || [];
-      const filteredChallenges = allChallenges.filter(c => c.level === currentSpice);
-      const pool = filteredChallenges.length > 0 ? filteredChallenges : allChallenges;
+      let filteredChallenges = allChallenges.filter(c => c.level === currentSpice);
+      if (filteredChallenges.length === 0) filteredChallenges = allChallenges;
+
+      // Si Papito forzó Reto o Verdad (nextType)
+      if (roomData.nextType) {
+        const byType = filteredChallenges.filter(c => c.tipo?.toLowerCase() === roomData.nextType?.toLowerCase());
+        if (byType.length > 0) {
+          filteredChallenges = byType;
+        }
+      }
+
+      const pool = filteredChallenges;
 
       if (pool.length > 0) {
         const cIdx = Math.floor(Math.random() * pool.length);
@@ -262,7 +272,8 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
     await updateDoc(roomRef, {
       nextTarget: null,
       nextPair: null,
-      nextChallenge: null
+      nextChallenge: null,
+      nextType: null
     });
 
     // 6. Publicar resultado sincronizado tras 3.2s
@@ -299,6 +310,15 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
     }
   };
 
+  // MODO TRAMPA: Forzar Tipo (Reto vs Verdad)
+  const handleToggleCheatType = async (type) => {
+    if (!canCheat) return;
+    const roomRef = doc(db, 'rooms', roomId);
+    const newType = roomData.nextType === type ? null : type;
+    await updateDoc(roomRef, { nextType: newType });
+    if (navigator.vibrate) navigator.vibrate(35);
+  };
+
   // MODO TRAMPA: Fijar Reto/Verdad
   const handleSaveCheatChallenge = async (challengeObj) => {
     const roomRef = doc(db, 'rooms', roomId);
@@ -309,7 +329,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
 
   const handleClearTrap = async () => {
     const roomRef = doc(db, 'rooms', roomId);
-    await updateDoc(roomRef, { nextTarget: null, nextPair: null, nextChallenge: null });
+    await updateDoc(roomRef, { nextTarget: null, nextPair: null, nextChallenge: null, nextType: null });
   };
 
   // ELIMINAR JUGADOR (Host o Papito)
@@ -787,92 +807,92 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
       <div className="w-full max-w-lg z-10 my-2">
         <div className="p-2 bg-slate-900/90 border border-slate-800 rounded-2xl flex items-center justify-between shadow-lg backdrop-blur-md">
           <button
-            onClick={() => isCheatActiveVisual && handleChangeSpiceLevel(1)}
-            disabled={!isCheatActiveVisual}
+            onClick={() => canCheat && handleChangeSpiceLevel(1)}
+            disabled={!canCheat}
             className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
               currentSpice === 1
                 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
                 : 'text-slate-500 hover:text-slate-300'
-            } ${!isCheatActiveVisual ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
+            } ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
           >
             <span>🌶️</span>
             <span className="truncate">1. Suave</span>
           </button>
 
           <button
-            onClick={() => isCheatActiveVisual && handleChangeSpiceLevel(2)}
-            disabled={!isCheatActiveVisual}
+            onClick={() => canCheat && handleChangeSpiceLevel(2)}
+            disabled={!canCheat}
             className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
               currentSpice === 2
                 ? 'bg-rose-500/20 text-rose-300 border border-rose-500/50 shadow-[0_0_12px_rgba(244,63,94,0.4)]'
                 : 'text-slate-500 hover:text-slate-300'
-            } ${!isCheatActiveVisual ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
+            } ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
           >
             <span>🔥</span>
             <span className="truncate">2. Caliente</span>
           </button>
 
           <button
-            onClick={() => isCheatActiveVisual && handleChangeSpiceLevel(3)}
-            disabled={!isCheatActiveVisual}
+            onClick={() => canCheat && handleChangeSpiceLevel(3)}
+            disabled={!canCheat}
             className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
               currentSpice === 3
                 ? 'bg-purple-600/30 text-purple-300 border border-purple-500/60 shadow-[0_0_15px_rgba(168,85,247,0.5)]'
                 : 'text-slate-500 hover:text-slate-300'
-            } ${!isCheatActiveVisual ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
+            } ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
           >
             <span>💀</span>
             <span className="truncate">3. Fuego</span>
           </button>
         </div>
 
-        {/* SELECTOR SECRETO DE TRAMPA DE PICANTE (Visible solo para Papito cuando no está camuflado) */}
-        <AnimatePresence>
-          {isCheatActiveVisual && (
-            <motion.div
-              initial={{ opacity: 0, y: -6, height: 0 }}
-              animate={{ opacity: 1, y: 0, height: 'auto' }}
-              exit={{ opacity: 0, y: -6, height: 0 }}
-              className="mt-1.5 p-2 bg-slate-900/95 border border-rose-500/40 rounded-xl flex items-center justify-between text-xs shadow-md"
-            >
-              <span className="text-[10px] font-black text-rose-400 flex items-center gap-1">
-                <EyeOff className="w-3 h-3 text-rose-400" /> Forzar Picante:
-              </span>
-              <div className="flex gap-1.5">
+        {/* SELECTOR SECRETO DE TIPO: RETO VS VERDAD (Solo Papito y si no está camuflado) */}
+        {isCheatActiveVisual && (
+          <div className="mt-2 p-2 bg-slate-900/90 border border-rose-500/40 rounded-2xl flex items-center justify-between gap-2 shadow-lg backdrop-blur-md">
+            <span className="text-[10px] font-bold text-rose-400 flex items-center gap-1 flex-shrink-0">
+              <EyeOff className="w-3.5 h-3.5" /> Forzar Tipo:
+            </span>
+
+            <div className="flex items-center gap-1.5 flex-1 justify-end">
+              <button
+                type="button"
+                onClick={() => handleToggleCheatType('reto')}
+                className={`py-1 px-3 rounded-xl text-xs font-black transition flex items-center gap-1 active:scale-95 ${
+                  roomData.nextType === 'reto'
+                    ? 'bg-rose-600 text-white shadow-[0_0_12px_rgba(244,63,94,0.7)] border border-rose-400'
+                    : 'bg-slate-800/90 text-slate-400 hover:text-rose-300 border border-slate-700/70'
+                }`}
+              >
+                <span>🔥</span>
+                <span>Reto</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleToggleCheatType('verdad')}
+                className={`py-1 px-3 rounded-xl text-xs font-black transition flex items-center gap-1 active:scale-95 ${
+                  roomData.nextType === 'verdad'
+                    ? 'bg-purple-600 text-white shadow-[0_0_12px_rgba(168,85,247,0.7)] border border-purple-400'
+                    : 'bg-slate-800/90 text-slate-400 hover:text-purple-300 border border-slate-700/70'
+                }`}
+              >
+                <span>💜</span>
+                <span>Verdad</span>
+              </button>
+
+              {roomData.nextType && (
                 <button
-                  onClick={() => handleChangeSpiceLevel(1)}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold transition flex items-center gap-1 ${
-                    currentSpice === 1
-                      ? 'bg-amber-500 text-black shadow-[0_0_10px_rgba(245,158,11,0.5)] scale-105'
-                      : 'bg-slate-950 text-amber-300/80 hover:text-amber-200 border border-amber-500/30'
-                  }`}
+                  type="button"
+                  onClick={() => handleToggleCheatType(null)}
+                  className="p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white"
+                  title="Desactivar forzar tipo"
                 >
-                  🌶️ Suave {currentSpice === 1 && '✓'}
+                  <X className="w-3.5 h-3.5" />
                 </button>
-                <button
-                  onClick={() => handleChangeSpiceLevel(2)}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold transition flex items-center gap-1 ${
-                    currentSpice === 2
-                      ? 'bg-rose-600 text-white shadow-[0_0_10px_rgba(244,63,94,0.5)] scale-105'
-                      : 'bg-slate-950 text-rose-300/80 hover:text-rose-200 border border-rose-500/30'
-                  }`}
-                >
-                  🔥 Caliente {currentSpice === 2 && '✓'}
-                </button>
-                <button
-                  onClick={() => handleChangeSpiceLevel(3)}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold transition flex items-center gap-1 ${
-                    currentSpice === 3
-                      ? 'bg-purple-600 text-white shadow-[0_0_10px_rgba(168,85,247,0.5)] scale-105'
-                      : 'bg-slate-950 text-purple-300/80 hover:text-purple-200 border border-purple-500/30'
-                  }`}
-                >
-                  💀 Fuego {currentSpice === 3 && '✓'}
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Indicador de Ronda con Doble Toque Camuflaje */}
         <div className="flex justify-between items-center px-2 mt-1.5 text-[10px] text-slate-500 font-medium">
@@ -884,7 +904,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
             <TrendingUp className="w-3 h-3 text-rose-500" /> Ronda #{roomData.roundCount || 0}
           </span>
           <span>
-            {isCheatActiveVisual ? 'Podés forzar el nivel con la trampa' : 'El picante sube automáticamente cada 8 rondas'}
+            {canCheat ? 'Podés cambiar el nivel cuando quieras' : 'El picante sube automáticamente cada 8 rondas'}
           </span>
         </div>
       </div>
@@ -1149,8 +1169,8 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
         </button>
       </main>
 
-      {/* BARRA FLOTANTE DE TRAMPA COMPLETA (Víctima 1 + Víctima 2 + RETO FIJADO) */}
-      {isCheatActiveVisual && (target1Player || target2Player || fixedChallenge) && (
+      {/* BARRA FLOTANTE DE TRAMPA COMPLETA (Víctima 1 + Víctima 2 + RETO FIJADO + TIPO FORZADO) */}
+      {isCheatActiveVisual && (target1Player || target2Player || fixedChallenge || roomData.nextType) && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1174,6 +1194,11 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
                 </span>
               ) : (
                 <span className="text-[10px] text-slate-500">💋 (Toca 2º)</span>
+              )}
+              {roomData.nextType && (
+                <span className="px-2 py-0.5 bg-pink-500/20 border border-pink-500/40 rounded-lg text-pink-300 truncate font-semibold">
+                  {roomData.nextType === 'reto' ? '🔥 Reto' : '💜 Verdad'}
+                </span>
               )}
             </div>
 
