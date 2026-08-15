@@ -55,6 +55,10 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
   const [displayIndex, setDisplayIndex] = useState(0);
   const [newPlayerModal, setNewPlayerModal] = useState(false);
   const [extraPlayerName, setExtraPlayerName] = useState('');
+  
+  // Estado para ocultar/mostrar superpoderes de trampa con doble toque en #Ronda N
+  const [cheatUIVisible, setCheatUIVisible] = useState(true);
+  const lastTapRef = useRef(0);
 
   const spinInterval = useRef(null);
 
@@ -101,6 +105,20 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
       if (navigator.vibrate) navigator.vibrate([100, 50, 150]);
     }
   }, [roomData?.currentResult, roomData?.isSpinning]);
+
+  // Doble toque en #Ronda para ocultar/mostrar superpoderes de trampa
+  const handleRondaDoubleTap = () => {
+    if (!canCheat) return;
+    const now = Date.now();
+    if (now - lastTapRef.current < 400) {
+      // Doble toque detectado
+      setCheatUIVisible(prev => !prev);
+      if (navigator.vibrate) navigator.vibrate(40);
+      lastTapRef.current = 0;
+    } else {
+      lastTapRef.current = now;
+    }
+  };
 
   // Reemplazar {target} y {actor} en retos
   const formatChallenge = (rawText, actorName, targetName) => {
@@ -326,6 +344,9 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
     roomData.currentPair.name === playerName
   );
 
+  // Determinar si los superpoderes de trampa están activos visualmente
+  const isCheatActiveVisual = canCheat && cheatUIVisible;
+
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-between p-4 relative pb-12 overflow-x-hidden">
       {/* Fondos */}
@@ -408,9 +429,13 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
           </button>
         </div>
 
-        {/* Indicador de Ronda */}
+        {/* Indicador de Ronda con Doble Toque Camuflaje */}
         <div className="flex justify-between items-center px-2 mt-1.5 text-[10px] text-slate-500 font-medium">
-          <span className="flex items-center gap-1">
+          <span 
+            onClick={handleRondaDoubleTap}
+            className="flex items-center gap-1 cursor-pointer select-none active:opacity-75"
+            title={canCheat ? "Doble toque para ocultar/mostrar superpoderes de trampa" : ""}
+          >
             <TrendingUp className="w-3 h-3 text-rose-500" /> Ronda #{roomData.roundCount || 0}
           </span>
           <span>
@@ -550,8 +575,8 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
         </button>
       </main>
 
-      {/* BARRA FLOTANTE DE TRAMPA (Visible SOLO si canCheat = true) */}
-      {canCheat && (target1Player || target2Player) && (
+      {/* BARRA FLOTANTE DE TRAMPA (Visible SOLO si canCheat Y cheatUIVisible) */}
+      {isCheatActiveVisual && (target1Player || target2Player) && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -590,7 +615,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
             Jugadores ({playersList.length})
           </span>
           <div className="flex items-center gap-2">
-            {canCheat && (
+            {isCheatActiveVisual && (
               <span className="text-[10px] text-rose-400/90 font-medium">
                 (Tocá: 1º Le toca, 2º Con quién)
               </span>
@@ -607,14 +632,14 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
         <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
           {playersList.map((player) => {
             const isMe = player.claimedBy === playerId || player.id === playerId;
-            const isTarget1 = canCheat && roomData.nextTarget === player.id;
-            const isTarget2 = canCheat && roomData.nextPair === player.id;
+            const isTarget1 = isCheatActiveVisual && roomData.nextTarget === player.id;
+            const isTarget2 = isCheatActiveVisual && roomData.nextPair === player.id;
             const isUnclaimed = player.isClaimed === false;
 
             return (
               <div
                 key={player.id}
-                onClick={() => handleToggleCheatPlayer(player)}
+                onClick={() => canCheat && handleToggleCheatPlayer(player)}
                 className={`p-2.5 rounded-xl border text-sm font-medium flex items-center justify-between transition-all select-none ${
                   canCheat ? 'cursor-pointer' : ''
                 } ${
@@ -635,8 +660,8 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
                 </div>
 
                 <div className="flex items-center gap-1">
-                  {/* Badges de trampa (Solo Papito) */}
-                  {canCheat && (
+                  {/* Badges de trampa (Solo si Papito tiene superpoderes visibles) */}
+                  {isCheatActiveVisual && (
                     <>
                       {isTarget1 && (
                         <span className="px-1.5 py-0.5 bg-rose-500 text-white text-[10px] font-black rounded-md">
@@ -806,7 +831,7 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
                 </div>
               </div>
 
-              {canCheat && (
+              {isCheatActiveVisual && (
                 <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-300 space-y-1.5">
                   <p className="font-bold flex items-center gap-1.5 text-rose-400">
                     <EyeOff className="w-4 h-4" /> Modo Trampa Activo:
