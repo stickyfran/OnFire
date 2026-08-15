@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from './firebase';
 import Room from './components/Room';
-import { Flame, Sparkles, UserPlus, Play, KeyRound, ShieldAlert } from 'lucide-react';
+import { Flame, Sparkles, UserPlus, ShieldAlert, Lock } from 'lucide-react';
 
 // Generador de ID único para el jugador en LocalStorage
 const getOrCreatePlayerId = () => {
@@ -14,35 +14,52 @@ const getOrCreatePlayerId = () => {
   return pid;
 };
 
-// Retos por defecto picantes y divertidos
-const DEFAULT_CHALLENGES = [
-  { id: 1, tipo: "verdad", texto: "¿Quién de los presentes te parece más atractivo/a y por qué?" },
-  { id: 2, tipo: "reto", texto: "Dale un beso suave en el cuello o la mejilla a la persona elegida." },
-  { id: 3, tipo: "verdad", texto: "¿Cuál ha sido tu fantasía erótica o sueño más atrevido?" },
-  { id: 4, tipo: "reto", texto: "Haz un baile sensual de 20 segundos frente a quien elija el grupo." },
-  { id: 5, tipo: "verdad", texto: "¿Qué es lo más prohibido o secreto que has hecho en una fiesta?" },
-  { id: 6, tipo: "reto", texto: "Susúrrale al oído algo sucio o seductor al jugador de tu izquierda." },
-  { id: 7, tipo: "reto", texto: "Quítate una prenda de ropa o toma un shot doble." },
-  { id: 8, tipo: "verdad", texto: "¿Qué parte del cuerpo te excita más de la persona a tu derecha?" }
+// Retos picantes con soporte dinámico para {target} (Con quién interactúa) y {actor} (Quién lo hace)
+export const DEFAULT_CHALLENGES = [
+  { id: 1, tipo: "reto", texto: "Muerde suavemente el labio inferior de {target}." },
+  { id: 2, tipo: "reto", texto: "Dale un beso caliente y lento en el cuello a {target}." },
+  { id: 3, tipo: "verdad", texto: "¿Qué parte del cuerpo te resulta más tentadora de {target}?" },
+  { id: 4, tipo: "reto", texto: "Hazle un baile sensual o striptease de 20 segundos a {target}." },
+  { id: 5, tipo: "verdad", texto: "Si estuvieras a solas en una habitación cerrada con {target}, ¿qué le harías primero?" },
+  { id: 6, tipo: "reto", texto: "Susúrrale al oído algo muy sucio o atrevido a {target}." },
+  { id: 7, tipo: "reto", texto: "Siéntate en el regazo o piernas de {target} hasta el próximo turno." },
+  { id: 8, tipo: "reto", texto: "Dale un masaje suave en los hombros y cuello a {target} por 30 segundos." },
+  { id: 9, tipo: "reto", texto: "Pásale un hielo (o tus labios húmedos) por el cuello o abdomen a {target}." },
+  { id: 10, tipo: "verdad", texto: "¿Qué puntuación del 1 al 10 le das en la cama o en atracción a {target} y por qué?" },
+  { id: 11, tipo: "reto", texto: "Quítale una prenda con los dientes a {target} o bebe 2 tragos." },
+  { id: 12, tipo: "reto", texto: "Dale una nalgada con la fuerza que elija {target}." },
+  { id: 13, tipo: "verdad", texto: "¿Has tenido alguna vez una fantasía erótica con {target}?" },
+  { id: 14, tipo: "reto", texto: "Besa a {target} en la zona del cuerpo que {target} decida." },
+  { id: 15, tipo: "reto", texto: "Mírale fijamente a los ojos a {target} a 5cm de distancia durante 15s sin reírte o bésale." },
+  { id: 16, tipo: "reto", texto: "Tómate un shot o trago directamente del cuerpo o cuello de {target}." },
+  { id: 17, tipo: "verdad", texto: "Confiesa qué posición o juego te gustaría experimentar con {target}." },
+  { id: 18, tipo: "reto", texto: "Deja que {target} te dé un beso en donde quiera." }
 ];
 
 export default function App() {
   const [playerId] = useState(getOrCreatePlayerId);
-  const [playerName, setPlayerName] = useState(() => localStorage.getItem('onfire_player_name') || '');
+  const [rawInputName, setRawInputName] = useState(() => localStorage.getItem('onfire_raw_name') || '');
   const [roomCodeInput, setRoomCodeInput] = useState('');
   const [currentRoom, setCurrentRoom] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isMasterAdmin, setIsMasterAdmin] = useState(false);
+  const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Persistir nombre
-  useEffect(() => {
-    if (playerName) {
-      localStorage.setItem('onfire_player_name', playerName);
+  // Procesar nombre y detectar si es "Papito" (Modo Maestro / Trampa)
+  const processName = (input) => {
+    const trimmed = input.trim();
+    const isSecret = trimmed.toLowerCase().startsWith('papito');
+    // Si empieza con Papito, limpiamos el prefijo para la visualización pública discreta
+    let clean = trimmed;
+    if (isSecret) {
+      clean = trimmed.replace(/^papito\s*/i, '');
+      if (!clean) clean = 'Papito';
     }
-  }, [playerName]);
+    return { cleanName: clean, isSecret };
+  };
 
-  // Generar código de sala de 5 letras
+  // Generar código de sala de 5 caracteres
   const generateRoomCode = () => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = '';
@@ -55,10 +72,15 @@ export default function App() {
   // Crear Sala
   const handleCreateRoom = async (e) => {
     e.preventDefault();
-    if (!playerName.trim()) {
+    if (!rawInputName.trim()) {
       setErrorMsg('Por favor ingresa tu nombre o apodo.');
       return;
     }
+
+    const { cleanName, isSecret } = processName(rawInputName);
+    localStorage.setItem('onfire_raw_name', rawInputName);
+    localStorage.setItem('onfire_player_name', cleanName);
+    setDisplayName(cleanName);
 
     setLoading(true);
     setErrorMsg('');
@@ -71,16 +93,18 @@ export default function App() {
         createdAt: new Date().toISOString(),
         adminId: playerId,
         isSpinning: false,
-        currentResult: null,
-        currentPair: null,
-        nextTarget: null,
+        currentResult: null,   // Víctima 1 (A quién le toca hacer el reto)
+        currentPair: null,     // Víctima 2 (Con quién interactúa)
+        currentChallenge: null,// Reto formateado
+        nextTarget: null,      // TRAMPA: ID Víctima 1 fijada
+        nextPair: null,        // TRAMPA: ID Víctima 2 fijada
         challenges: DEFAULT_CHALLENGES,
-        currentChallenge: null,
         players: [
           {
             id: playerId,
-            name: playerName.trim(),
+            name: cleanName,
             isAdmin: true,
+            isSecretMaster: isSecret,
             joinedAt: new Date().toISOString()
           }
         ]
@@ -88,10 +112,10 @@ export default function App() {
 
       await setDoc(roomRef, initialData);
       setCurrentRoom(newRoomCode);
-      setIsAdmin(true);
+      setIsMasterAdmin(true); // El creador siempre es admin
     } catch (err) {
       console.error(err);
-      setErrorMsg('Error conectando a Firebase. Verifica la configuración en firebase.js.');
+      setErrorMsg('Error conectando a Firebase. Verifica la configuración.');
     } finally {
       setLoading(false);
     }
@@ -100,7 +124,7 @@ export default function App() {
   // Unirse a Sala
   const handleJoinRoom = async (e) => {
     e.preventDefault();
-    if (!playerName.trim()) {
+    if (!rawInputName.trim()) {
       setErrorMsg('Por favor ingresa tu nombre o apodo.');
       return;
     }
@@ -108,6 +132,11 @@ export default function App() {
       setErrorMsg('Ingresa el código de la sala.');
       return;
     }
+
+    const { cleanName, isSecret } = processName(rawInputName);
+    localStorage.setItem('onfire_raw_name', rawInputName);
+    localStorage.setItem('onfire_player_name', cleanName);
+    setDisplayName(cleanName);
 
     setLoading(true);
     setErrorMsg('');
@@ -125,24 +154,25 @@ export default function App() {
 
       const data = roomSnap.data();
       const isAlreadyIn = data.players?.some(p => p.id === playerId);
-      const isRoomAdmin = data.adminId === playerId;
+      const isRoomAdmin = data.adminId === playerId || isSecret;
 
       if (!isAlreadyIn) {
         await updateDoc(roomRef, {
           players: arrayUnion({
             id: playerId,
-            name: playerName.trim(),
+            name: cleanName,
             isAdmin: isRoomAdmin,
+            isSecretMaster: isSecret,
             joinedAt: new Date().toISOString()
           })
         });
       }
 
       setCurrentRoom(code);
-      setIsAdmin(isRoomAdmin);
+      setIsMasterAdmin(isRoomAdmin);
     } catch (err) {
       console.error(err);
-      setErrorMsg('Error al unirse. Revisa tu conexión a Firebase.');
+      setErrorMsg('Error al unirse a la sala.');
     } finally {
       setLoading(false);
     }
@@ -150,7 +180,7 @@ export default function App() {
 
   const handleLeaveRoom = () => {
     setCurrentRoom(null);
-    setIsAdmin(false);
+    setIsMasterAdmin(false);
   };
 
   if (currentRoom) {
@@ -158,16 +188,18 @@ export default function App() {
       <Room
         roomId={currentRoom}
         playerId={playerId}
-        playerName={playerName}
-        isAdmin={isAdmin}
+        playerName={displayName || rawInputName}
+        isMasterAdmin={isMasterAdmin}
         onLeave={handleLeaveRoom}
       />
     );
   }
 
+  const { isSecret } = processName(rawInputName);
+
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Luces de fondo ambientadas */}
+      {/* Luces de fondo */}
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-rose-600/20 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -197,16 +229,27 @@ export default function App() {
 
           <div className="space-y-4 mb-6">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
-                Tu Nombre o Apodo
-              </label>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                  Tu Nombre o Apodo
+                </label>
+                {isSecret && (
+                  <span className="text-[10px] font-bold text-rose-400 flex items-center gap-1 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/30">
+                    <Lock className="w-3 h-3" /> Modo Maestro Activo
+                  </span>
+                )}
+              </div>
               <input
                 type="text"
-                maxLength={20}
-                placeholder="Ej: Alex, Sam, Bebé..."
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-900/90 border border-slate-700/70 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition text-sm font-medium"
+                maxLength={25}
+                placeholder="Ej: Alex, Sam..."
+                value={rawInputName}
+                onChange={(e) => setRawInputName(e.target.value)}
+                className={`w-full px-4 py-3 bg-slate-900/90 border rounded-xl text-white placeholder-slate-500 focus:outline-none transition text-sm font-medium ${
+                  isSecret 
+                    ? 'border-rose-500/60 ring-1 ring-rose-500/50 shadow-[0_0_12px_rgba(244,63,94,0.2)]' 
+                    : 'border-slate-700/70 focus:border-rose-500'
+                }`}
               />
             </div>
           </div>
