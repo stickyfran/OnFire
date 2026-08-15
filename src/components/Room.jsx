@@ -365,6 +365,7 @@ export default function Room({
   const [newPlayerModal, setNewPlayerModal] = useState(false);
   const [extraPlayerName, setExtraPlayerName] = useState('');
   const [newPlayerAvatar, setNewPlayerAvatar] = useState(() => getRandomAvatar());
+  const [showExtraAvatarPicker, setShowExtraAvatarPicker] = useState(false);
   
   // Modal de acción al tocar jugador en la ruleta (Admin / Trampa)
   const [selectedPlayerForAction, setSelectedPlayerForAction] = useState(null);
@@ -1969,9 +1970,17 @@ export default function Room({
                     Nombre del Jugador:
                   </label>
                   <div className="flex items-center gap-2">
-                    <div className="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-500/50 flex items-center justify-center text-2xl flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setShowExtraAvatarPicker(!showExtraAvatarPicker)}
+                      className="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-500/50 hover:border-purple-400 flex items-center justify-center text-2xl flex-shrink-0 transition active:scale-90 cursor-pointer relative"
+                      title="Tocá para elegir ícono"
+                    >
                       <span>{newPlayerAvatar}</span>
-                    </div>
+                      <span className="absolute -bottom-1 -right-1 p-0.5 bg-slate-900 border border-slate-700 rounded-full text-slate-400">
+                        <Sparkles className="w-2 h-2 text-pink-400" />
+                      </span>
+                    </button>
                     <input
                       type="text"
                       maxLength={20}
@@ -1982,14 +1991,22 @@ export default function Room({
                       className="flex-1 px-3.5 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-purple-500"
                     />
                   </div>
-                </div>
 
-                {/* Selector de Avatar */}
-                <AvatarPicker
-                  selectedAvatar={newPlayerAvatar}
-                  onSelectAvatar={setNewPlayerAvatar}
-                  label="Ícono del jugador:"
-                />
+                  {/* Selector de Avatar solo si se toca */}
+                  <AnimatePresence>
+                    {showExtraAvatarPicker && (
+                      <AvatarPicker
+                        selectedAvatar={newPlayerAvatar}
+                        onSelectAvatar={(avatar) => {
+                          setNewPlayerAvatar(avatar);
+                          setShowExtraAvatarPicker(false);
+                        }}
+                        onClose={() => setShowExtraAvatarPicker(false)}
+                        label="Ícono del jugador:"
+                      />
+                    )}
+                  </AnimatePresence>
+                </div>
 
                 <div className="flex gap-2 pt-1">
                   <button

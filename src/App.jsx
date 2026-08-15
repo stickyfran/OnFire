@@ -43,9 +43,8 @@ const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '
 export default function App() {
   const [playerId] = useState(getOrCreatePlayerId);
   const [rawInputName, setRawInputName] = useState(() => localStorage.getItem('onfire_raw_name') || '');
-  const [selectedAvatar, setSelectedAvatar] = useState(() => {
-    return localStorage.getItem('onfire_player_avatar') || getRandomAvatar();
-  });
+  const [selectedAvatar, setSelectedAvatar] = useState(() => getRandomAvatar());
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [roomCodeInput, setRoomCodeInput] = useState('');
   const [currentRoom, setCurrentRoom] = useState(null);
   const [isHost, setIsHost] = useState(false);
@@ -59,10 +58,6 @@ export default function App() {
     setSelectedAvatar(avatar);
     localStorage.setItem('onfire_player_avatar', avatar);
   };
-
-  // Nombres precargados por el anfitrión
-  const [precreatedNames, setPrecreatedNames] = useState([]);
-  const [newPreName, setNewPreName] = useState('');
 
   // Lista de todos los jugadores de la sala para elegir en 1 toque
   const [allRoomPlayers, setAllRoomPlayers] = useState([]);
@@ -377,19 +372,6 @@ export default function App() {
     return code;
   };
 
-  // Añadir nombre a la lista de invitados precreados
-  const handleAddPreName = () => {
-    const trimmed = newPreName.trim();
-    if (trimmed && !precreatedNames.includes(trimmed)) {
-      setPrecreatedNames([...precreatedNames, trimmed]);
-      setNewPreName('');
-    }
-  };
-
-  const handleRemovePreName = (nameToRemove) => {
-    setPrecreatedNames(precreatedNames.filter(n => n !== nameToRemove));
-  };
-
   // 1. CREAR SALA
   const handleCreateRoom = async (e) => {
     e.preventDefault();
@@ -420,16 +402,6 @@ export default function App() {
           joinedAt: new Date().toISOString()
         }
       ];
-
-      precreatedNames.forEach((name, idx) => {
-        initialPlayers.push({
-          id: `slot_${Date.now()}_${idx}`,
-          name: name,
-          avatar: AVATARS[(idx + 1) % AVATARS.length],
-          isClaimed: false,
-          claimedBy: null
-        });
-      });
 
       const initialData = {
         createdAt: new Date().toISOString(),
@@ -948,13 +920,7 @@ export default function App() {
             <h1 className="text-5xl sm:text-6xl font-black tracking-tight bg-gradient-to-r from-rose-400 via-fuchsia-400 to-amber-300 bg-clip-text text-transparent drop-shadow-[0_0_25px_rgba(244,63,94,0.5)]">
               OnFire 🔥
             </h1>
-            <span className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full bg-slate-900/90 border border-slate-800 text-xs font-mono font-bold text-rose-400 shadow-md mt-2">
-              Versión {APP_VERSION}
-            </span>
           </div>
-          <p className="text-slate-300 text-sm sm:text-base mt-2 font-semibold tracking-wide">
-            Juego de Ruleta y +500 Retos Picantes en Vivo
-          </p>
         </div>
 
         {/* ========================================================== */}
@@ -1022,8 +988,10 @@ export default function App() {
           {/* ========================================================== */}
           {/* VISTA 1: CREAR O BUSCAR SALA (PANTALLA DE INICIO)          */}
           {/* ========================================================== */}
+          {/* VISTA 1: CREAR O BUSCAR SALA (PANTALLA DE INICIO)          */}
+          {/* ========================================================== */}
           {stepJoin === 'input_code' ? (
-            <div className="space-y-6">
+            <div className="space-y-5">
               {/* Tu Nombre con Selector de Avatar */}
               <div>
                 <div className="flex justify-between items-center mb-2">
@@ -1036,10 +1004,18 @@ export default function App() {
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-13 h-13 sm:w-14 sm:h-14 bg-gradient-to-br from-rose-500/30 to-purple-600/30 border-2 border-rose-500/60 rounded-2xl flex items-center justify-center text-2xl sm:text-3xl shadow-lg flex-shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowAvatarPicker(!showAvatarPicker)}
+                    className="w-13 h-13 sm:w-14 sm:h-14 bg-gradient-to-br from-rose-500/30 to-purple-600/30 hover:from-rose-500/40 hover:to-purple-600/40 border-2 border-rose-500/60 hover:border-rose-400 rounded-2xl flex items-center justify-center text-2xl sm:text-3xl shadow-lg flex-shrink-0 transition active:scale-90 cursor-pointer relative group"
+                    title="Tocá para elegir ícono"
+                  >
                     <span>{selectedAvatar}</span>
-                  </div>
+                    <span className="absolute -bottom-1 -right-1 p-0.5 bg-slate-900 border border-slate-700 rounded-full text-slate-400 group-hover:text-white">
+                      <Sparkles className="w-2.5 h-2.5 text-pink-400" />
+                    </span>
+                  </button>
                   <input
                     type="text"
                     maxLength={25}
@@ -1053,61 +1029,21 @@ export default function App() {
                     }`}
                   />
                 </div>
-              </div>
 
-              {/* Selector de Ícono / Emoji */}
-              <AvatarPicker 
-                selectedAvatar={selectedAvatar} 
-                onSelectAvatar={handleSelectAvatar} 
-                label="Elegí tu ícono de ruleta:" 
-              />
-
-              {/* SECCIÓN OPCIONAL: PRECARGAR JUGADORES */}
-              <div className="pt-3 border-t border-slate-800">
-                <label className="block text-xs sm:text-sm font-bold text-slate-300 mb-2 flex items-center justify-between">
-                  <span>Precargar Jugadores de la Previa (Opcional):</span>
-                  <span className="text-xs text-purple-400 font-bold">{precreatedNames.length} sumados</span>
-                </label>
-                
-                <div className="flex gap-2 mb-2.5">
-                  <input
-                    type="text"
-                    maxLength={15}
-                    placeholder="Nombre de tu amigo/a..."
-                    value={newPreName}
-                    onChange={(e) => setNewPreName(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddPreName())}
-                    className="flex-1 px-4 py-2.5 bg-slate-900/80 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-purple-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddPreName}
-                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-sm font-bold flex items-center gap-1 transition"
-                  >
-                    <Plus className="w-4 h-4" /> Sumar
-                  </button>
-                </div>
-
-                {precreatedNames.length > 0 && (
-                  <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto p-2.5 bg-slate-900/50 rounded-2xl border border-slate-800">
-                    {precreatedNames.map((name, idx) => (
-                      <span
-                        key={name}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-950/70 border border-purple-500/40 text-purple-300 text-xs font-bold rounded-xl shadow-sm"
-                      >
-                        <span>{AVATARS[(idx + 1) % AVATARS.length]}</span>
-                        {name}
-                        <button
-                          type="button"
-                          onClick={() => handleRemovePreName(name)}
-                          className="hover:text-rose-400 ml-1"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
+                {/* Selector Desplegable de Ícono / Emoji solo al hacer clic */}
+                <AnimatePresence>
+                  {showAvatarPicker && (
+                    <AvatarPicker 
+                      selectedAvatar={selectedAvatar} 
+                      onSelectAvatar={(avatar) => {
+                        handleSelectAvatar(avatar);
+                        setShowAvatarPicker(false);
+                      }}
+                      onClose={() => setShowAvatarPicker(false)}
+                      label="Elegí tu ícono de ruleta:" 
+                    />
+                  )}
+                </AnimatePresence>
               </div>
 
               {/* Botón Crear Sala */}
@@ -1201,9 +1137,17 @@ export default function App() {
                   </div>
 
                   <div className="flex items-center gap-2.5">
-                    <div className="w-14 h-14 bg-gradient-to-br from-rose-500/30 to-purple-600/30 border-2 border-rose-500/60 rounded-2xl flex items-center justify-center text-3xl shadow-lg flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setShowAvatarPicker(!showAvatarPicker)}
+                      className="w-14 h-14 bg-gradient-to-br from-rose-500/30 to-purple-600/30 hover:from-rose-500/40 hover:to-purple-600/40 border-2 border-rose-500/60 hover:border-rose-400 rounded-2xl flex items-center justify-center text-3xl shadow-lg flex-shrink-0 transition active:scale-90 cursor-pointer relative group"
+                      title="Tocá para elegir ícono"
+                    >
                       <span>{selectedAvatar}</span>
-                    </div>
+                      <span className="absolute -bottom-1 -right-1 p-0.5 bg-slate-900 border border-slate-700 rounded-full text-slate-400 group-hover:text-white">
+                        <Sparkles className="w-2.5 h-2.5 text-pink-400" />
+                      </span>
+                    </button>
                     <input
                       type="text"
                       maxLength={25}
@@ -1221,14 +1165,22 @@ export default function App() {
                       }`}
                     />
                   </div>
-                </div>
 
-                {/* Selector de Ícono */}
-                <AvatarPicker
-                  selectedAvatar={selectedAvatar}
-                  onSelectAvatar={handleSelectAvatar}
-                  label="Elegí tu ícono o emoji:"
-                />
+                  {/* Selector de Ícono solo si se abre */}
+                  <AnimatePresence>
+                    {showAvatarPicker && (
+                      <AvatarPicker
+                        selectedAvatar={selectedAvatar}
+                        onSelectAvatar={(avatar) => {
+                          handleSelectAvatar(avatar);
+                          setShowAvatarPicker(false);
+                        }}
+                        onClose={() => setShowAvatarPicker(false)}
+                        label="Elegí tu ícono o emoji:"
+                      />
+                    )}
+                  </AnimatePresence>
+                </div>
 
                 <div className="flex gap-3 pt-2">
                   <button
