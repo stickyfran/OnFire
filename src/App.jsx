@@ -167,6 +167,30 @@ export default function App() {
     }
   };
 
+  // Estado de Animaciones (default: activado)
+  const [animationsEnabled, setAnimationsEnabled] = useState(() => {
+    try {
+      const stored = localStorage.getItem('onfire_animations');
+      if (stored !== null) return stored === 'true';
+      const legacyLow = localStorage.getItem('onfire_low_specs');
+      if (legacyLow !== null) return legacyLow !== 'true';
+      return true; // default: activado
+    } catch {
+      return true;
+    }
+  });
+
+  const handleToggleAnimations = () => {
+    setAnimationsEnabled((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('onfire_animations', next.toString());
+        localStorage.setItem('onfire_low_specs', (!next).toString());
+      } catch {}
+      return next;
+    });
+  };
+
   // Auto-Actualización obligatoria a la última versión
   useEffect(() => {
     const checkForUpdates = async () => {
@@ -879,8 +903,25 @@ export default function App() {
       </AnimatePresence>
 
       {/* CONTENEDOR CENTRAL GRANDE Y ESPACIOSO */}
-      <div className="w-full max-w-lg z-10 py-4">
+      <div className="w-full max-w-lg z-10 py-2 sm:py-4">
         
+        {/* Barra superior de la Landing (arriba a la derecha): Botón de Animaciones */}
+        <div className="w-full flex items-center justify-end mb-2 sm:mb-4 px-1">
+          <button
+            type="button"
+            onClick={handleToggleAnimations}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 active:scale-95 shadow-sm ${
+              animationsEnabled
+                ? 'bg-slate-900/90 text-amber-300 border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.25)]'
+                : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:border-slate-700'
+            }`}
+            title={animationsEnabled ? 'Animaciones: Activadas (Tocá para desactivar)' : 'Animaciones: Desactivadas (Tocá para activar)'}
+          >
+            <Zap className={`w-3.5 h-3.5 ${animationsEnabled ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.8)]' : 'text-slate-500'}`} />
+            <span>{animationsEnabled ? 'Animaciones: Activadas' : 'Animaciones: Desactivadas'}</span>
+          </button>
+        </div>
+
         {/* HEADER LOGO GRANDE Y SALTARÍN */}
         <div className="text-center mb-6 sm:mb-8">
           <motion.div

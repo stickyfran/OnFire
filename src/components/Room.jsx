@@ -452,20 +452,25 @@ export default function Room({
     });
   };
 
-  // Modo Rendimiento / Animaciones Reducidas para teléfonos lentos / bajo rendimiento
-  const [lowSpecsMode, setLowSpecsMode] = useState(() => {
+  // Estado de Animaciones (default: activado)
+  const [animationsEnabled, setAnimationsEnabled] = useState(() => {
     try {
-      return localStorage.getItem('onfire_low_specs') === 'true';
+      const stored = localStorage.getItem('onfire_animations');
+      if (stored !== null) return stored === 'true';
+      const legacyLow = localStorage.getItem('onfire_low_specs');
+      if (legacyLow !== null) return legacyLow !== 'true';
+      return true; // default: activado
     } catch {
-      return false;
+      return true;
     }
   });
 
-  const handleToggleLowSpecs = () => {
-    setLowSpecsMode((prev) => {
+  const handleToggleAnimations = () => {
+    setAnimationsEnabled((prev) => {
       const next = !prev;
       try {
-        localStorage.setItem('onfire_low_specs', next.toString());
+        localStorage.setItem('onfire_animations', next.toString());
+        localStorage.setItem('onfire_low_specs', (!next).toString());
       } catch {}
       return next;
     });
@@ -1037,7 +1042,7 @@ export default function Room({
       <ScreenFireEffect 
         currentSpice={currentSpice}
         isVisible={(isMeActor || isMeTarget) && !!roomData?.currentResult && !roomData?.isSpinning && isFireActive}
-        lowSpecsMode={lowSpecsMode}
+        lowSpecsMode={!animationsEnabled}
       />
 
       {/* ========================================================== */}
@@ -2211,15 +2216,16 @@ export default function Room({
 
                   <button
                     type="button"
-                    onClick={handleToggleLowSpecs}
+                    onClick={handleToggleAnimations}
                     className={`p-2.5 border rounded-xl flex items-center gap-2 text-xs font-bold transition active:scale-95 ${
-                      lowSpecsMode
+                      animationsEnabled
                         ? 'bg-amber-500/20 text-amber-300 border-amber-500/60 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
-                        : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800'
+                        : 'bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-800'
                     }`}
+                    title={animationsEnabled ? 'Animaciones: Activadas (Tocá para desactivar)' : 'Animaciones: Desactivadas (Tocá para activar)'}
                   >
-                    <Zap className={`w-4 h-4 ${lowSpecsMode ? 'fill-amber-400 text-amber-400' : 'text-slate-400'}`} />
-                    <span>{lowSpecsMode ? 'Modo Rápido: ON' : 'Acelerar Celular'}</span>
+                    <Zap className={`w-4 h-4 ${animationsEnabled ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.8)]' : 'text-slate-500'}`} />
+                    <span>{animationsEnabled ? 'Animaciones: Activadas' : 'Animaciones: Desactivadas'}</span>
                   </button>
 
                   <button
