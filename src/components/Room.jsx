@@ -12,14 +12,15 @@ import {
   Download, 
   Upload, 
   Sparkles, 
-  Zap,
-  Target,
-  HeartHandshake,
-  X,
-  EyeOff
+  Zap, 
+  HeartHandshake, 
+  X, 
+  EyeOff, 
+  Plus, 
+  UserCheck 
 } from 'lucide-react';
 
-// Sonidos sintetizados con Web Audio API
+// Generador de audio sintetizado Web Audio API
 const playTone = (freq, duration = 0.1, type = 'sine') => {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -34,7 +35,7 @@ const playTone = (freq, duration = 0.1, type = 'sine') => {
     osc.start();
     osc.stop(ctx.currentTime + duration);
   } catch (e) {
-    // Audio no soportado
+    // Audio bloqueado
   }
 };
 
@@ -45,15 +46,17 @@ const playWinSound = () => {
   setTimeout(() => playTone(783.99, 0.25, 'sine'), 180);
 };
 
-export default function Room({ roomId, playerId, playerName, isMasterAdmin, onLeave }) {
+export default function Room({ roomId, playerId, playerName, isHost, canCheat, onLeave }) {
   const [roomData, setRoomData] = useState(null);
   const [copied, setCopied] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [displayIndex, setDisplayIndex] = useState(0);
+  const [newPlayerModal, setNewPlayerModal] = useState(false);
+  const [extraPlayerName, setExtraPlayerName] = useState('');
 
   const spinInterval = useRef(null);
 
-  // Sincronización en tiempo real con Firestore
+  // Sincronización en tiempo real
   useEffect(() => {
     if (!roomId) return;
     const roomRef = doc(db, 'rooms', roomId);
@@ -70,7 +73,7 @@ export default function Room({ roomId, playerId, playerName, isMasterAdmin, onLe
     };
   }, [roomId]);
 
-  // Animación sincronizada de la ruleta
+  // Animación del giro sincronizada
   useEffect(() => {
     if (!roomData) return;
 
@@ -89,7 +92,7 @@ export default function Room({ roomId, playerId, playerName, isMasterAdmin, onLe
     }
   }, [roomData?.isSpinning, roomData?.players]);
 
-  // Sonido y vibración cuando se decide la víctima
+  // Sonido de victoria
   useEffect(() => {
     if (roomData?.currentResult && !roomData?.isSpinning) {
       playWinSound();
@@ -97,15 +100,15 @@ export default function Room({ roomId, playerId, playerName, isMasterAdmin, onLe
     }
   }, [roomData?.currentResult, roomData?.isSpinning]);
 
-  // Formatear texto del reto con los nombres de las víctimas
+  // Reemplazar {target} y {actor} en retos
   const formatChallenge = (rawText, actorName, targetName) => {
     if (!rawText) return '';
-    let formatted = rawText.replace(/\{target\}/gi, targetName || 'otra persona');
+    let formatted = rawText.replace(/\{target\}/gi, targetName || 'alguien');
     formatted = formatted.replace(/\{actor\}/gi, actorName || 'Tú');
     return formatted;
   };
 
-  // Girar la Ruleta
+  // Girar Ruleta
   const handleSpin = async () => {
     if (!roomData || !roomData.players || roomData.players.length < 2) {
       alert('¡Se necesitan al menos 2 jugadores en la sala para girar!');
@@ -114,7 +117,7 @@ export default function Room({ roomId, playerId, playerName, isMasterAdmin, onLe
 
     const roomRef = doc(db, 'rooms', roomId);
 
-    // 1. Activar animación de giro para todos
+    // 1. Iniciar giro en Firestore
     await updateDoc(roomRef, {
       isSpinning: true,
       currentResult: null,
@@ -122,7 +125,7 @@ export default function Room({ roomId, playerId, playerName, isMasterAdmin, onLe
       currentChallenge: null
     });
 
-    // 2. Determinar VÍCTIMA 1 (Actor / A quien le toca)
+    // 2. Determinar Víctima 1 (Actor)
     const players = roomData.players;
     let actor = null;
     let target = null;
@@ -135,7 +138,7 @@ export default function Room({ roomId, playerId, playerName, isMasterAdmin, onLe
       actor = players[randomIdx];
     }
 
-    // 3. Determinar VÍCTIMA 2 (Con quién interactúa)
+    // 3. Determinar Víctima 2 (Pareja)
     const otherPlayers = players.filter(p => p.id !== actor.id);
     if (roomData.nextPair) {
       target = players.find(p => p.id === roomData.nextPair);
@@ -156,13 +159,13 @@ export default function Room({ roomId, playerId, playerName, isMasterAdmin, onLe
       };
     }
 
-    // 5. Limpiar trampa en Firestore para el próximo turno
+    // 5. Limpiar trampa en Firestore
     await updateDoc(roomRef, {
       nextTarget: null,
       nextPair: null
     });
 
-    // 6. Detener giro tras 3.2 segundos y publicar resultados sincronizados
+    // 6. Publicar resultado tras 3.2s
     setTimeout(async () => {
       await updateDoc(roomRef, {
         isSpinning: false,
@@ -173,47 +176,59 @@ export default function Room({ roomId, playerId, playerName, isMasterAdmin, onLe
     }, 3200);
   };
 
-  // MODO TRAMPA: Fijar o Alternar Víctima 1 (Actor) y Víctima 2 (Pareja/Interacción)
+  // MODO TRAMPA: Fijar víctimas (EXCLUSIVO si canCheat = true)
   const handleToggleCheatPlayer = async (targetPlayer) => {
-    if (!isMasterAdmin) return;
+    if (!canCheat) return;
     const roomRef = doc(db, 'rooms', roomId);
 
     const isCurrentTarget1 = roomData.nextTarget === targetPlayer.id;
     const isCurrentTarget2 = roomData.nextPair === targetPlayer.id;
 
     if (isCurrentTarget1) {
-      // Si ya era objetivo 1, deseleccionar
       await updateDoc(roomRef, { nextTarget: null });
       if (navigator.vibrate) navigator.vibrate(40);
     } else if (isCurrentTarget2) {
-      // Si ya era objetivo 2, deseleccionar
       await updateDoc(roomRef, { nextPair: null });
       if (navigator.vibrate) navigator.vibrate(40);
     } else if (!roomData.nextTarget) {
-      // Si no hay objetivo 1, asignarlo como Actor (a quien le toca)
       await updateDoc(roomRef, { nextTarget: targetPlayer.id });
       if (navigator.vibrate) navigator.vibrate(70);
     } else {
-      // Si ya hay objetivo 1, asignar como Pareja de interacción
       await updateDoc(roomRef, { nextPair: targetPlayer.id });
       if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
     }
   };
 
-  // Limpiar toda la trampa
   const handleClearTrap = async () => {
     const roomRef = doc(db, 'rooms', roomId);
     await updateDoc(roomRef, { nextTarget: null, nextPair: null });
   };
 
-  // Copiar código de sala
+  // Añadir un nuevo jugador manualmente desde la sala
+  const handleAddExtraPlayer = async (e) => {
+    e.preventDefault();
+    if (!extraPlayerName.trim()) return;
+    const roomRef = doc(db, 'rooms', roomId);
+    const newPlayer = {
+      id: `slot_${Date.now()}`,
+      name: extraPlayerName.trim(),
+      isClaimed: true,
+      claimedBy: null,
+      joinedAt: new Date().toISOString()
+    };
+    await updateDoc(roomRef, {
+      players: [...(roomData.players || []), newPlayer]
+    });
+    setExtraPlayerName('');
+    setNewPlayerModal(false);
+  };
+
   const handleCopyCode = () => {
     navigator.clipboard.writeText(roomId);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Exportar retos JSON
   const handleExportChallenges = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(roomData.challenges || [], null, 2));
     const downloadAnchor = document.createElement('a');
@@ -224,7 +239,6 @@ export default function Room({ roomId, playerId, playerName, isMasterAdmin, onLe
     downloadAnchor.remove();
   };
 
-  // Importar retos JSON
   const handleImportChallenges = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -235,7 +249,7 @@ export default function Room({ roomId, playerId, playerName, isMasterAdmin, onLe
         if (Array.isArray(json)) {
           const roomRef = doc(db, 'rooms', roomId);
           await updateDoc(roomRef, { challenges: json });
-          alert(`¡${json.length} retos importados correctamente!`);
+          alert(`¡${json.length} retos importados con éxito!`);
         } else {
           alert('El archivo JSON debe contener un arreglo de retos.');
         }
@@ -250,7 +264,7 @@ export default function Room({ roomId, playerId, playerName, isMasterAdmin, onLe
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white">
         <Flame className="w-12 h-12 text-rose-500 animate-spin mb-4" />
-        <p className="text-slate-400 font-medium">Conectando a la sala en tiempo real...</p>
+        <p className="text-slate-400 font-medium">Sincronizando sala con Firestore...</p>
       </div>
     );
   }
@@ -262,11 +276,11 @@ export default function Room({ roomId, playerId, playerName, isMasterAdmin, onLe
 
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-between p-4 relative pb-12 overflow-x-hidden">
-      {/* Luces de ambiente */}
+      {/* Fondos */}
       <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-rose-600/15 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-fuchsia-600/15 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Barra Superior */}
+      {/* Header */}
       <header className="w-full max-w-lg flex items-center justify-between pt-2 pb-4 z-10 border-b border-slate-800/80">
         <button
           onClick={onLeave}
@@ -286,11 +300,12 @@ export default function Room({ roomId, playerId, playerName, isMasterAdmin, onLe
           </button>
         </div>
 
-        {isMasterAdmin ? (
+        {/* Panel de ajustes solo para el host o el que puede hacer trampa */}
+        {isHost || canCheat ? (
           <button
             onClick={() => setShowAdminPanel(!showAdminPanel)}
             className="p-2.5 bg-slate-900 border border-purple-500/40 rounded-xl text-purple-400 hover:text-purple-300 transition"
-            title="Panel de Administrador"
+            title="Ajustes de Sala"
           >
             <Settings className="w-5 h-5" />
           </button>
@@ -299,11 +314,9 @@ export default function Room({ roomId, playerId, playerName, isMasterAdmin, onLe
         )}
       </header>
 
-      {/* ÁREA CENTRAL: RULETA & RESULTADO */}
+      {/* RULETA CENTRAL */}
       <main className="w-full max-w-lg flex flex-col items-center justify-center my-auto z-10 py-4">
-        {/* Ruleta Neón */}
         <div className="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center mb-5">
-          {/* Anillo exterior dinámico */}
           <motion.div
             animate={{
               rotate: roomData.isSpinning ? 720 : 0,
@@ -318,7 +331,6 @@ export default function Room({ roomId, playerId, playerName, isMasterAdmin, onLe
             className="absolute inset-0 rounded-full border-4 border-dashed shadow-[0_0_35px_rgba(244,63,94,0.3)]"
           />
 
-          {/* Núcleo Central */}
           <div className="w-52 h-52 sm:w-60 sm:h-60 rounded-full bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-700/80 flex flex-col items-center justify-center p-5 text-center shadow-inner relative overflow-hidden">
             {roomData.isSpinning ? (
               <motion.div
@@ -365,7 +377,7 @@ export default function Room({ roomId, playerId, playerName, isMasterAdmin, onLe
           </div>
         </div>
 
-        {/* Tarjeta del Reto / Verdad Asignada */}
+        {/* Reto Asignado */}
         <AnimatePresence>
           {roomData.currentChallenge && !roomData.isSpinning && (
             <motion.div
@@ -402,8 +414,8 @@ export default function Room({ roomId, playerId, playerName, isMasterAdmin, onLe
         </button>
       </main>
 
-      {/* BARRA FLOTANTE DE TRAMPA (Visible ÚNICAMENTE para el Maestro Papito) */}
-      {isMasterAdmin && (target1Player || target2Player) && (
+      {/* BARRA FLOTANTE DE TRAMPA (Visible SOLO si canCheat = true) */}
+      {canCheat && (target1Player || target2Player) && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -441,42 +453,52 @@ export default function Room({ roomId, playerId, playerName, isMasterAdmin, onLe
             <Users className="w-4 h-4 text-purple-400" />
             Jugadores ({playersList.length})
           </span>
-          {isMasterAdmin && (
-            <span className="text-[10px] text-rose-400/90 font-medium">
-              (Toca para fijar: 1º Le toca, 2º Con quién)
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {canCheat && (
+              <span className="text-[10px] text-rose-400/90 font-medium">
+                (Toca: 1º Le toca, 2º Con quién)
+              </span>
+            )}
+            <button
+              onClick={() => setNewPlayerModal(true)}
+              className="text-[11px] text-purple-300 hover:text-purple-100 flex items-center gap-0.5 font-bold"
+            >
+              <Plus className="w-3.5 h-3.5" /> Añadir
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
           {playersList.map((player) => {
-            const isMe = player.id === playerId;
-            const isTarget1 = roomData.nextTarget === player.id; // Actor
-            const isTarget2 = roomData.nextPair === player.id;   // Interacción
+            const isMe = player.claimedBy === playerId || player.id === playerId;
+            const isTarget1 = canCheat && roomData.nextTarget === player.id;
+            const isTarget2 = canCheat && roomData.nextPair === player.id;
+            const isUnclaimed = player.isClaimed === false;
 
             return (
               <div
                 key={player.id}
                 onClick={() => handleToggleCheatPlayer(player)}
                 className={`p-2.5 rounded-xl border text-sm font-medium flex items-center justify-between transition-all select-none ${
-                  isMasterAdmin ? 'cursor-pointer' : ''
+                  canCheat ? 'cursor-pointer' : ''
                 } ${
                   isTarget1
                     ? 'bg-rose-950/70 border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.3)] ring-1 ring-rose-500'
                     : isTarget2
                     ? 'bg-purple-950/70 border-purple-500 shadow-[0_0_12px_rgba(168,85,247,0.3)] ring-1 ring-purple-500'
+                    : isUnclaimed
+                    ? 'bg-slate-900/40 border-dashed border-slate-800 text-slate-400'
                     : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
                 }`}
               >
                 <div className="flex items-center gap-2 truncate">
-                  <div className={`w-2 h-2 rounded-full ${isMe ? 'bg-emerald-400' : 'bg-slate-600'}`} />
-                  <span className={`truncate ${isMe ? 'text-emerald-300 font-bold' : 'text-slate-200'}`}>
+                  <div className={`w-2 h-2 rounded-full ${isMe ? 'bg-emerald-400' : isUnclaimed ? 'bg-amber-500/50' : 'bg-slate-600'}`} />
+                  <span className={`truncate ${isMe ? 'text-emerald-300 font-bold' : isUnclaimed ? 'text-slate-400 italic' : 'text-slate-200'}`}>
                     {player.name} {isMe && '(Tú)'}
                   </span>
                 </div>
 
-                {/* Marcadores de trampa visibles SOLO para el Maestro */}
-                {isMasterAdmin && (
+                {canCheat && (
                   <div>
                     {isTarget1 && (
                       <span className="px-1.5 py-0.5 bg-rose-500 text-white text-[10px] font-black rounded-md">
@@ -496,9 +518,67 @@ export default function Room({ roomId, playerId, playerName, isMasterAdmin, onLe
         </div>
       </footer>
 
+      {/* MODAL PARA AÑADIR JUGADOR EXTRA EN VIVO */}
+      <AnimatePresence>
+        {newPlayerModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              className="bg-slate-900 border border-slate-800 p-5 rounded-3xl w-full max-w-sm shadow-2xl space-y-4"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <UserCheck className="w-5 h-5 text-purple-400" /> Añadir Jugador a la Sala
+                </h3>
+                <button
+                  onClick={() => setNewPlayerModal(false)}
+                  className="text-slate-400 hover:text-white text-sm"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleAddExtraPlayer} className="space-y-3">
+                <input
+                  type="text"
+                  maxLength={20}
+                  placeholder="Nombre del nuevo jugador..."
+                  value={extraPlayerName}
+                  onChange={(e) => setExtraPlayerName(e.target.value)}
+                  autoFocus
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-purple-500"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNewPlayerModal(false)}
+                    className="w-1/2 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="w-1/2 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs"
+                  >
+                    Guardar
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* PANEL DE ADMINISTRADOR (MODAL) */}
       <AnimatePresence>
-        {showAdminPanel && isMasterAdmin && (
+        {showAdminPanel && (isHost || canCheat) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -513,7 +593,7 @@ export default function Room({ roomId, playerId, playerName, isMasterAdmin, onLe
             >
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <h3 className="text-lg font-bold text-purple-400 flex items-center gap-2">
-                  <Settings className="w-5 h-5" /> Panel de Administrador
+                  <Settings className="w-5 h-5" /> Panel de Sala
                 </h3>
                 <button
                   onClick={() => setShowAdminPanel(false)}
@@ -528,7 +608,7 @@ export default function Room({ roomId, playerId, playerName, isMasterAdmin, onLe
                   Base de Retos ({roomData.challenges?.length || 0})
                 </h4>
                 <p className="text-xs text-slate-400 mb-3">
-                  Usa <code className="text-pink-400">{'{target}'}</code> en tus textos para que se sustituya automáticamente por el nombre de la persona con la que debe interactuar.
+                  Usa <code className="text-pink-400">{'{target}'}</code> en tus retos para que se reemplace por la pareja seleccionada.
                 </p>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -551,24 +631,24 @@ export default function Room({ roomId, playerId, playerName, isMasterAdmin, onLe
                 </div>
               </div>
 
-              <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-300 space-y-1.5">
-                <p className="font-bold flex items-center gap-1.5 text-rose-400">
-                  <EyeOff className="w-4 h-4" /> Instrucciones del Modo Trampa:
-                </p>
-                <p className="text-slate-300 text-[11px] leading-relaxed">
-                  1. Toca sobre un jugador para marcarlo como <strong>🎯 1º (A quien le toca)</strong>.
-                  <br />
-                  2. Toca sobre otro jugador para marcarlo como <strong>💋 2º (Con quién interactúa)</strong>.
-                  <br />
-                  3. Al girar la ruleta, el resultado caerá obligatoriamente en ambos y el reto se personalizará con sus nombres de forma transparente.
-                </p>
-              </div>
+              {canCheat && (
+                <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-300 space-y-1.5">
+                  <p className="font-bold flex items-center gap-1.5 text-rose-400">
+                    <EyeOff className="w-4 h-4" /> Modo Trampa Activo:
+                  </p>
+                  <p className="text-slate-300 text-[11px] leading-relaxed">
+                    1. Toca sobre un jugador para fijar <strong>🎯 1º (A quién le toca)</strong>.
+                    <br />
+                    2. Toca sobre otro para fijar <strong>💋 2º (Con quién interactúa)</strong>.
+                  </p>
+                </div>
+              )}
 
               <button
                 onClick={() => setShowAdminPanel(false)}
                 className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-sm transition"
               >
-                Cerrar Panel
+                Cerrar
               </button>
             </motion.div>
           </motion.div>
