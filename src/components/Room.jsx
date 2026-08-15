@@ -29,7 +29,9 @@ import {
   Share2,
   Maximize,
   Minimize,
-  Smartphone
+  Smartphone,
+  Clock,
+  Timer
 } from 'lucide-react';
 
 // Generador de audio sintetizado Web Audio API
@@ -205,6 +207,36 @@ export default function Room({
       }
     }
   }, [roomData?.currentChallenge, roomData?.isSpinning]);
+
+  // Temporizador / Countdown de 10 segundos y control de animaciones ardientes
+  const [countdown, setCountdown] = useState(0);
+  const [isFireActive, setIsFireActive] = useState(false);
+
+  useEffect(() => {
+    if (roomData?.currentChallenge && !roomData?.isSpinning) {
+      setCountdown(10);
+      setIsFireActive(true);
+
+      const interval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            setIsFireActive(false);
+            return 0;
+          }
+          if (prev <= 4) {
+            if (navigator.vibrate) navigator.vibrate(35);
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(interval);
+    } else {
+      setCountdown(0);
+      setIsFireActive(false);
+    }
+  }, [roomData?.currentChallenge?.id || roomData?.currentChallenge?.texto, roomData?.isSpinning]);
 
   // Doble toque en #Ronda para ocultar/mostrar superpoderes de trampa
   const handleRondaDoubleTap = () => {
@@ -527,8 +559,16 @@ export default function Room({
       {/* ========================================================== */}
       {/* EFECTO DINÁMICO SEGÚN PICANTE (CUANDO TE TOCA A VOS O CON VOS) */}
       {/* ========================================================== */}
-      {(isMeActor || isMeTarget) && roomData.currentResult && !roomData.isSpinning && (
-        <div className="fixed inset-0 pointer-events-none z-30 overflow-hidden">
+      <AnimatePresence>
+        {(isMeActor || isMeTarget) && roomData?.currentResult && !roomData?.isSpinning && isFireActive && (
+          <motion.div
+            key="screen-fire-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8 }}
+            className="fixed inset-0 pointer-events-none z-30 overflow-hidden"
+          >
           
           {/* CASO 1: 🌶️ NIVEL SUAVE -> CAÍDA DE AJÍES PICANTES */}
           {currentSpice === 1 && (
@@ -736,8 +776,9 @@ export default function Room({
             </>
           )}
 
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ========================================================== */}
       {/* SUPER ANIMACIÓN DE PANTALLA COMPLETA (RETO vs VERDAD)     */}
@@ -1048,7 +1089,7 @@ export default function Room({
           {/* ========================================================= */}
           {/* FUEGO RADIAL GIGANTE ENVOLVIENDO LA RULETA (NIVEL 3 y 4)   */}
           {/* ========================================================= */}
-          {currentSpice >= 3 && (
+          {currentSpice >= 3 && (roomData.isSpinning || isFireActive) && (
             <>
               {/* Halo ardiente envolvente suave */}
               <motion.div
@@ -1226,6 +1267,34 @@ export default function Room({
               <p className="text-base sm:text-lg font-semibold text-slate-100 font-serif italic leading-relaxed">
                 "{currentChallenge.texto}"
               </p>
+
+              {/* COUNTDOWN DE 10 SEGUNDOS CON BARRA ARDIENTE */}
+              <div className="mt-3.5 pt-3 border-t border-slate-800/80 flex flex-col items-center gap-1.5">
+                <div className="flex items-center gap-2">
+                  {countdown > 0 ? (
+                    <span className="px-3.5 py-1 bg-gradient-to-r from-amber-500/25 via-rose-500/25 to-purple-500/25 border border-amber-500/50 rounded-full text-xs font-black text-amber-300 flex items-center gap-1.5 shadow-[0_0_20px_rgba(245,158,11,0.5)] animate-pulse">
+                      <Clock className="w-3.5 h-3.5 text-amber-300 animate-spin" />
+                      ⏱️ TIEMPO: {countdown}s
+                    </span>
+                  ) : (
+                    <span className="px-3.5 py-1 bg-slate-800/90 border border-slate-700 text-slate-400 rounded-full text-xs font-bold flex items-center gap-1.5">
+                      ⏰ ¡TIEMPO CUMPLIDO!
+                    </span>
+                  )}
+                </div>
+
+                {countdown > 0 && (
+                  <div className="w-48 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700/60 mt-0.5">
+                    <motion.div
+                      key={currentChallenge.id || currentChallenge.texto}
+                      initial={{ width: "100%" }}
+                      animate={{ width: "0%" }}
+                      transition={{ duration: 10, ease: "linear" }}
+                      className="h-full bg-gradient-to-r from-amber-400 via-rose-500 to-purple-600 rounded-full"
+                    />
+                  </div>
+                )}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
