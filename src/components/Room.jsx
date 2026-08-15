@@ -1310,14 +1310,14 @@ export default function Room({
 
         </div>
 
-        {/* Subheader: SALA & QR A LA IZQUIERDA | JUGADORES (N), SUMAR Y AJUSTES A LA DERECHA */}
+        {/* Subheader: SALA & QR A LA IZQUIERDA | RONDA N EN EL CENTRO | JUGADORES (N), SUMAR Y AJUSTES A LA DERECHA */}
         <div className="w-full max-w-lg flex justify-between items-center px-0.5 mt-1 text-xs text-slate-400 font-medium flex-shrink-0">
           
           {/* LADO IZQUIERDO: Código de Sala y Botón QR */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5">
             <button
               onClick={handleCopyCode}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 bg-slate-900/90 border border-rose-500/30 rounded-xl text-xs font-mono font-bold tracking-widest text-rose-300 hover:border-rose-500 transition shadow-sm active:scale-95"
+              className="flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-900/90 border border-rose-500/30 rounded-xl text-xs font-mono font-bold tracking-widest text-rose-300 hover:border-rose-500 transition shadow-sm active:scale-95"
               title="Copiar código de sala"
             >
               <span>SALA: {roomId}</span>
@@ -1331,6 +1331,16 @@ export default function Room({
             >
               <QrCode className="w-4 h-4" />
             </button>
+          </div>
+
+          {/* CENTRO: Badge de Ronda N (A la derecha del QR e izquierda de N jugadores) */}
+          <div
+            onClick={handleRondaDoubleTap}
+            className="flex items-center gap-1 px-2.5 py-1 bg-slate-900/90 border border-amber-500/35 hover:border-amber-500/60 rounded-xl text-xs font-bold text-amber-300 shadow-sm cursor-pointer select-none active:scale-95 transition"
+            title={canCheat ? "Ronda actual (Doble toque para alternar superpoderes)" : "Ronda actual"}
+          >
+            <Zap className="w-3 h-3 text-amber-400 fill-amber-400 animate-pulse" />
+            <span className="font-extrabold tracking-wide">Ronda {roomData?.roundCount || 1}</span>
           </div>
 
           {/* LADO DERECHO: Jugadores (N), Sumar y Ajustes */}
