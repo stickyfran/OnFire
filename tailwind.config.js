@@ -9,6 +9,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Outfit', 'sans-serif'],
+        fun: ['Fredoka', 'Outfit', 'sans-serif'],
         serif: ['Playfair Display', 'serif'],
       },
       colors: {

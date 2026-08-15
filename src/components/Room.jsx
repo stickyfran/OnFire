@@ -1449,7 +1449,7 @@ export default function Room({
                 </span>
               </div>
 
-              <p className="text-base sm:text-xl md:text-2xl font-bold text-white font-serif italic leading-snug sm:leading-relaxed drop-shadow-md px-1 my-1">
+              <p className="text-base sm:text-xl md:text-2xl font-bold text-white font-fun tracking-wide leading-snug sm:leading-relaxed drop-shadow-md px-1.5 my-1">
                 "{currentChallenge.texto}"
               </p>
 
