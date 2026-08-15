@@ -803,96 +803,101 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
         )}
       </header>
 
-      {/* BARRA DE NIVEL DE PICANTE */}
+      {/* BARRA DE NIVEL DE PICANTE Y TRAMPA INTEGRADA */}
       <div className="w-full max-w-lg z-10 my-2">
-        <div className="p-2 bg-slate-900/90 border border-slate-800 rounded-2xl flex items-center justify-between shadow-lg backdrop-blur-md">
-          <button
-            onClick={() => canCheat && handleChangeSpiceLevel(1)}
-            disabled={!canCheat}
-            className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-              currentSpice === 1
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
-                : 'text-slate-500 hover:text-slate-300'
-            } ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
-          >
-            <span>🌶️</span>
-            <span className="truncate">1. Suave</span>
-          </button>
+        <div className="p-2 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-lg backdrop-blur-md space-y-2">
+          
+          {/* Fila 1: Botones de Nivel de Picante */}
+          <div className="flex items-center justify-between gap-1.5">
+            <button
+              onClick={() => canCheat && handleChangeSpiceLevel(1)}
+              disabled={!canCheat}
+              className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                currentSpice === 1
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
+                  : 'text-slate-500 hover:text-slate-300'
+              } ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
+            >
+              <span>🌶️</span>
+              <span className="truncate">1. Suave</span>
+            </button>
 
-          <button
-            onClick={() => canCheat && handleChangeSpiceLevel(2)}
-            disabled={!canCheat}
-            className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-              currentSpice === 2
-                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/50 shadow-[0_0_12px_rgba(244,63,94,0.4)]'
-                : 'text-slate-500 hover:text-slate-300'
-            } ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
-          >
-            <span>🔥</span>
-            <span className="truncate">2. Caliente</span>
-          </button>
+            <button
+              onClick={() => canCheat && handleChangeSpiceLevel(2)}
+              disabled={!canCheat}
+              className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                currentSpice === 2
+                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/50 shadow-[0_0_12px_rgba(244,63,94,0.4)]'
+                  : 'text-slate-500 hover:text-slate-300'
+              } ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
+            >
+              <span>🔥</span>
+              <span className="truncate">2. Caliente</span>
+            </button>
 
-          <button
-            onClick={() => canCheat && handleChangeSpiceLevel(3)}
-            disabled={!canCheat}
-            className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-              currentSpice === 3
-                ? 'bg-purple-600/30 text-purple-300 border border-purple-500/60 shadow-[0_0_15px_rgba(168,85,247,0.5)]'
-                : 'text-slate-500 hover:text-slate-300'
-            } ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
-          >
-            <span>💀</span>
-            <span className="truncate">3. Fuego</span>
-          </button>
-        </div>
+            <button
+              onClick={() => canCheat && handleChangeSpiceLevel(3)}
+              disabled={!canCheat}
+              className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                currentSpice === 3
+                  ? 'bg-purple-600/30 text-purple-300 border border-purple-500/60 shadow-[0_0_15px_rgba(168,85,247,0.5)]'
+                  : 'text-slate-500 hover:text-slate-300'
+              } ${!canCheat ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}
+            >
+              <span>💀</span>
+              <span className="truncate">3. Fuego</span>
+            </button>
+          </div>
 
-        {/* SELECTOR SECRETO DE TIPO: RETO VS VERDAD (Solo Papito y si no está camuflado) */}
-        {isCheatActiveVisual && (
-          <div className="mt-2 p-2 bg-slate-900/90 border border-rose-500/40 rounded-2xl flex items-center justify-between gap-2 shadow-lg backdrop-blur-md">
-            <span className="text-[10px] font-bold text-rose-400 flex items-center gap-1 flex-shrink-0">
-              <EyeOff className="w-3.5 h-3.5" /> Forzar Tipo:
-            </span>
+          {/* Fila 2: Forzar Reto o Verdad (Justo debajo de los botones de picante) */}
+          {isCheatActiveVisual && (
+            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
+              <span className="text-[10px] font-bold text-rose-400 flex items-center gap-1 flex-shrink-0">
+                <EyeOff className="w-3.5 h-3.5" /> Forzar Tipo:
+              </span>
 
-            <div className="flex items-center gap-1.5 flex-1 justify-end">
-              <button
-                type="button"
-                onClick={() => handleToggleCheatType('reto')}
-                className={`py-1 px-3 rounded-xl text-xs font-black transition flex items-center gap-1 active:scale-95 ${
-                  roomData.nextType === 'reto'
-                    ? 'bg-rose-600 text-white shadow-[0_0_12px_rgba(244,63,94,0.7)] border border-rose-400'
-                    : 'bg-slate-800/90 text-slate-400 hover:text-rose-300 border border-slate-700/70'
-                }`}
-              >
-                <span>🔥</span>
-                <span>Reto</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleToggleCheatType('verdad')}
-                className={`py-1 px-3 rounded-xl text-xs font-black transition flex items-center gap-1 active:scale-95 ${
-                  roomData.nextType === 'verdad'
-                    ? 'bg-purple-600 text-white shadow-[0_0_12px_rgba(168,85,247,0.7)] border border-purple-400'
-                    : 'bg-slate-800/90 text-slate-400 hover:text-purple-300 border border-slate-700/70'
-                }`}
-              >
-                <span>💜</span>
-                <span>Verdad</span>
-              </button>
-
-              {roomData.nextType && (
+              <div className="flex items-center gap-1.5 flex-1 justify-end">
                 <button
                   type="button"
-                  onClick={() => handleToggleCheatType(null)}
-                  className="p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white"
-                  title="Desactivar forzar tipo"
+                  onClick={() => handleToggleCheatType('reto')}
+                  className={`py-1 px-3 rounded-xl text-xs font-black transition flex items-center gap-1 active:scale-95 ${
+                    roomData.nextType === 'reto'
+                      ? 'bg-rose-600 text-white shadow-[0_0_12px_rgba(244,63,94,0.7)] border border-rose-400'
+                      : 'bg-slate-800/90 text-slate-400 hover:text-rose-300 border border-slate-700/70'
+                  }`}
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <span>🔥</span>
+                  <span>Reto</span>
                 </button>
-              )}
+
+                <button
+                  type="button"
+                  onClick={() => handleToggleCheatType('verdad')}
+                  className={`py-1 px-3 rounded-xl text-xs font-black transition flex items-center gap-1 active:scale-95 ${
+                    roomData.nextType === 'verdad'
+                      ? 'bg-purple-600 text-white shadow-[0_0_12px_rgba(168,85,247,0.7)] border border-purple-400'
+                      : 'bg-slate-800/90 text-slate-400 hover:text-purple-300 border border-slate-700/70'
+                  }`}
+                >
+                  <span>💜</span>
+                  <span>Verdad</span>
+                </button>
+
+                {roomData.nextType && (
+                  <button
+                    type="button"
+                    onClick={() => handleToggleCheatType(null)}
+                    className="p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white"
+                    title="Desactivar forzar tipo"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+
+        </div>
 
         {/* Indicador de Ronda con Doble Toque Camuflaje */}
         <div className="flex justify-between items-center px-2 mt-1.5 text-[10px] text-slate-500 font-medium">
