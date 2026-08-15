@@ -451,66 +451,168 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
       <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-fuchsia-600/15 rounded-full blur-3xl pointer-events-none" />
 
       {/* ========================================================== */}
-      {/* EFECTO DE FUEGO EN PANTALLA COMPLETA (CUANDO TE TOCA A VOS O CON VOS) */}
+      {/* EFECTO DINÁMICO SEGÚN PICANTE (CUANDO TE TOCA A VOS O CON VOS) */}
       {/* ========================================================== */}
       {(isMeActor || isMeTarget) && roomData.currentResult && !roomData.isSpinning && (
         <div className="fixed inset-0 pointer-events-none z-30 overflow-hidden">
-          {/* Borde ardiente alrededor de toda la pantalla (Vignette de fuego) */}
-          <motion.div
-            animate={{
-              opacity: [0.6, 1, 0.7, 0.95, 0.6],
-              boxShadow: [
-                "inset 0 0 35px rgba(244,63,94,0.6), inset 0 0 70px rgba(245,158,11,0.4)",
-                "inset 0 0 65px rgba(244,63,94,0.9), inset 0 0 110px rgba(245,158,11,0.7)",
-                "inset 0 0 35px rgba(244,63,94,0.6), inset 0 0 70px rgba(245,158,11,0.4)"
-              ]
-            }}
-            transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
-            className="absolute inset-0 border-4 border-rose-500/60"
-          />
-
-          {/* Llamaradas ascendentes desde la parte inferior */}
-          <motion.div
-            animate={{
-              y: [15, -25, 10, -40, 15],
-              scaleY: [1, 1.4, 1.1, 1.5, 1],
-              opacity: [0.7, 0.95, 0.75, 1, 0.7]
-            }}
-            transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-            className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-rose-600/70 via-orange-500/40 to-transparent blur-xl"
-          />
-
-          <motion.div
-            animate={{
-              y: [0, -35, -5, -50, 0],
-              scaleX: [1, 1.15, 0.95, 1.2, 1],
-              opacity: [0.6, 0.95, 0.7, 1, 0.6]
-            }}
-            transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut", delay: 0.25 }}
-            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4/5 h-40 bg-gradient-to-t from-amber-500/80 via-rose-500/50 to-transparent blur-2xl"
-          />
-
-          {/* Chispas y partículas de fuego flotando hacia arriba */}
-          <div className="absolute inset-0 flex justify-around items-end">
-            {[...Array(9)].map((_, i) => (
+          
+          {/* CASO 1: 🌶️ NIVEL SUAVE -> CAÍDA DE AJÍES PICANTES */}
+          {currentSpice === 1 && (
+            <>
+              {/* Borde ámbar cálido */}
               <motion.div
-                key={i}
                 animate={{
-                  y: [0, -600],
-                  x: [0, (i % 2 === 0 ? 35 : -35), (i % 2 === 0 ? -25 : 25)],
-                  opacity: [0, 0.95, 0.8, 0],
-                  scale: [0.4, 1.6, 0.8, 0]
+                  opacity: [0.5, 0.85, 0.5],
+                  boxShadow: [
+                    "inset 0 0 25px rgba(245,158,11,0.4), inset 0 0 50px rgba(234,88,12,0.3)",
+                    "inset 0 0 45px rgba(245,158,11,0.7), inset 0 0 80px rgba(234,88,12,0.5)",
+                    "inset 0 0 25px rgba(245,158,11,0.4), inset 0 0 50px rgba(234,88,12,0.3)"
+                  ]
                 }}
-                transition={{
-                  repeat: Infinity,
-                  duration: 2.1 + (i * 0.28),
-                  delay: i * 0.2,
-                  ease: "easeOut"
-                }}
-                className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-amber-300 via-orange-500 to-rose-600 blur-[1px] shadow-[0_0_12px_#f59e0b]"
+                transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
+                className="absolute inset-0 border-2 border-amber-500/40"
               />
-            ))}
-          </div>
+
+              {/* Resplandor suave inferior */}
+              <div className="absolute bottom-0 left-0 right-0 h-28 bg-gradient-to-t from-amber-500/30 via-orange-500/15 to-transparent blur-xl" />
+
+              {/* Lluvia / Caída de ajíes picantes 🌶️ */}
+              <div className="absolute inset-0 flex justify-around">
+                {[...Array(12)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ y: -60, x: 0, opacity: 0 }}
+                    animate={{
+                      y: [ -40, 750 ],
+                      x: [ 0, (i % 2 === 0 ? 30 : -30), (i % 2 === 0 ? -20 : 20) ],
+                      rotate: [ 0, (i % 2 === 0 ? 360 : -360) ],
+                      opacity: [ 0, 1, 1, 0 ],
+                      scale: [ 0.7, 1.2, 1, 0.8 ]
+                    }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 2.6 + (i * 0.22),
+                      delay: (i * 0.2),
+                      ease: "easeIn"
+                    }}
+                    className="text-2xl sm:text-3xl drop-shadow-[0_0_12px_rgba(245,158,11,0.8)] select-none"
+                  >
+                    🌶️
+                  </motion.div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* CASO 2: 🔥 NIVEL CALIENTE -> FUEGO MÁS SUAVE Y BRASAS */}
+          {currentSpice === 2 && (
+            <>
+              {/* Borde ardiente cálido */}
+              <motion.div
+                animate={{
+                  opacity: [0.5, 0.9, 0.5],
+                  boxShadow: [
+                    "inset 0 0 30px rgba(244,63,94,0.5), inset 0 0 60px rgba(245,158,11,0.35)",
+                    "inset 0 0 55px rgba(244,63,94,0.8), inset 0 0 95px rgba(245,158,11,0.6)",
+                    "inset 0 0 30px rgba(244,63,94,0.5), inset 0 0 60px rgba(245,158,11,0.35)"
+                  ]
+                }}
+                transition={{ repeat: Infinity, duration: 1.4, ease: "easeInOut" }}
+                className="absolute inset-0 border-3 border-rose-500/50"
+              />
+
+              {/* Llamas cálidas suaves inferiores */}
+              <motion.div
+                animate={{
+                  y: [10, -20, 10],
+                  scaleY: [1, 1.3, 1],
+                  opacity: [0.6, 0.85, 0.6]
+                }}
+                transition={{ repeat: Infinity, duration: 2.2, ease: "easeInOut" }}
+                className="absolute bottom-0 left-0 right-0 h-36 bg-gradient-to-t from-rose-600/50 via-orange-500/30 to-transparent blur-xl"
+              />
+
+              {/* Brasas y Llamitas flotantes 🔥 */}
+              <div className="absolute inset-0 flex justify-around items-end">
+                {[...Array(8)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    animate={{
+                      y: [0, -550],
+                      x: [0, (i % 2 === 0 ? 30 : -30), (i % 2 === 0 ? -15 : 15)],
+                      opacity: [0, 0.9, 0.8, 0],
+                      scale: [0.5, 1.2, 0.8, 0]
+                    }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 2.2 + (i * 0.3),
+                      delay: i * 0.25,
+                      ease: "easeOut"
+                    }}
+                    className="text-xl sm:text-2xl drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] select-none"
+                  >
+                    🔥
+                  </motion.div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* CASO 3: 💀 NIVEL FUEGO TOTAL -> FUEGO INTENSO CON CALAVERAS 💀 */}
+          {currentSpice === 3 && (
+            <>
+              {/* Borde ardiente extremo violeta y escarlata */}
+              <motion.div
+                animate={{
+                  opacity: [0.7, 1, 0.75, 1, 0.7],
+                  boxShadow: [
+                    "inset 0 0 45px rgba(168,85,247,0.8), inset 0 0 85px rgba(244,63,94,0.6)",
+                    "inset 0 0 80px rgba(168,85,247,1), inset 0 0 130px rgba(244,63,94,0.9)",
+                    "inset 0 0 45px rgba(168,85,247,0.8), inset 0 0 85px rgba(244,63,94,0.6)"
+                  ]
+                }}
+                transition={{ repeat: Infinity, duration: 1, ease: "easeInOut" }}
+                className="absolute inset-0 border-4 border-purple-500/70"
+              />
+
+              {/* Llamaradas colosales ascendentes */}
+              <motion.div
+                animate={{
+                  y: [15, -30, 10, -45, 15],
+                  scaleY: [1, 1.45, 1.1, 1.55, 1],
+                  opacity: [0.8, 1, 0.85, 1, 0.8]
+                }}
+                transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
+                className="absolute bottom-0 left-0 right-0 h-52 bg-gradient-to-t from-purple-800/80 via-rose-600/60 to-transparent blur-2xl"
+              />
+
+              {/* Calaveras flotantes 💀 y Llamas 💀 */}
+              <div className="absolute inset-0 flex justify-around items-end">
+                {[...Array(10)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    animate={{
+                      y: [0, -680],
+                      x: [0, (i % 2 === 0 ? 40 : -40), (i % 2 === 0 ? -30 : 30)],
+                      rotate: [0, (i % 2 === 0 ? 25 : -25), 0],
+                      opacity: [0, 1, 0.9, 0],
+                      scale: [0.6, 1.5, 1.1, 0]
+                    }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 2.0 + (i * 0.25),
+                      delay: i * 0.18,
+                      ease: "easeOut"
+                    }}
+                    className="text-2xl sm:text-4xl drop-shadow-[0_0_20px_rgba(168,85,247,0.9)] select-none"
+                  >
+                    {i % 2 === 0 ? '💀' : '🔥'}
+                  </motion.div>
+                ))}
+              </div>
+            </>
+          )}
+
         </div>
       )}
 
