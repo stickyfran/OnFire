@@ -451,6 +451,70 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
       <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-fuchsia-600/15 rounded-full blur-3xl pointer-events-none" />
 
       {/* ========================================================== */}
+      {/* EFECTO DE FUEGO EN PANTALLA COMPLETA (CUANDO TE TOCA A VOS O CON VOS) */}
+      {/* ========================================================== */}
+      {(isMeActor || isMeTarget) && roomData.currentResult && !roomData.isSpinning && (
+        <div className="fixed inset-0 pointer-events-none z-30 overflow-hidden">
+          {/* Borde ardiente alrededor de toda la pantalla (Vignette de fuego) */}
+          <motion.div
+            animate={{
+              opacity: [0.6, 1, 0.7, 0.95, 0.6],
+              boxShadow: [
+                "inset 0 0 35px rgba(244,63,94,0.6), inset 0 0 70px rgba(245,158,11,0.4)",
+                "inset 0 0 65px rgba(244,63,94,0.9), inset 0 0 110px rgba(245,158,11,0.7)",
+                "inset 0 0 35px rgba(244,63,94,0.6), inset 0 0 70px rgba(245,158,11,0.4)"
+              ]
+            }}
+            transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
+            className="absolute inset-0 border-4 border-rose-500/60"
+          />
+
+          {/* Llamaradas ascendentes desde la parte inferior */}
+          <motion.div
+            animate={{
+              y: [15, -25, 10, -40, 15],
+              scaleY: [1, 1.4, 1.1, 1.5, 1],
+              opacity: [0.7, 0.95, 0.75, 1, 0.7]
+            }}
+            transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+            className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-rose-600/70 via-orange-500/40 to-transparent blur-xl"
+          />
+
+          <motion.div
+            animate={{
+              y: [0, -35, -5, -50, 0],
+              scaleX: [1, 1.15, 0.95, 1.2, 1],
+              opacity: [0.6, 0.95, 0.7, 1, 0.6]
+            }}
+            transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut", delay: 0.25 }}
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4/5 h-40 bg-gradient-to-t from-amber-500/80 via-rose-500/50 to-transparent blur-2xl"
+          />
+
+          {/* Chispas y partículas de fuego flotando hacia arriba */}
+          <div className="absolute inset-0 flex justify-around items-end">
+            {[...Array(9)].map((_, i) => (
+              <motion.div
+                key={i}
+                animate={{
+                  y: [0, -600],
+                  x: [0, (i % 2 === 0 ? 35 : -35), (i % 2 === 0 ? -25 : 25)],
+                  opacity: [0, 0.95, 0.8, 0],
+                  scale: [0.4, 1.6, 0.8, 0]
+                }}
+                transition={{
+                  repeat: Infinity,
+                  duration: 2.1 + (i * 0.28),
+                  delay: i * 0.2,
+                  ease: "easeOut"
+                }}
+                className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-amber-300 via-orange-500 to-rose-600 blur-[1px] shadow-[0_0_12px_#f59e0b]"
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================== */}
       {/* SUPER ANIMACIÓN DE PANTALLA COMPLETA (RETO vs VERDAD)     */}
       {/* ========================================================== */}
       <AnimatePresence>
