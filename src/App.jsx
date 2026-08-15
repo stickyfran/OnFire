@@ -13,6 +13,8 @@ import {
   Plus, 
   X, 
   ArrowRight, 
+  ArrowLeft,
+  Users,
   CheckCircle2, 
   UserCheck, 
   QrCode,
@@ -53,7 +55,8 @@ export default function App() {
 
   // Lista de todos los jugadores de la sala para elegir en 1 toque
   const [allRoomPlayers, setAllRoomPlayers] = useState([]);
-  const [stepJoin, setStepJoin] = useState('input_code'); // 'input_code' | 'choose_name'
+  const [selectedMergeSlot, setSelectedMergeSlot] = useState(null);
+  const [stepJoin, setStepJoin] = useState('input_code'); // 'input_code' | 'join_name' | 'join_merge'
   
   // Estado de Instalación PWA (Android / iOS / PC)
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -436,7 +439,8 @@ export default function App() {
 
       const data = roomSnap.data();
       setAllRoomPlayers(data.players || []);
-      setStepJoin('choose_name');
+      setSelectedMergeSlot(null);
+      setStepJoin('join_name');
     } catch (err) {
       console.error(err);
       setErrorMsg('Error al buscar la sala.');
@@ -449,6 +453,32 @@ export default function App() {
   const handleCheckRoom = async (e) => {
     e.preventDefault();
     await checkRoomByCode(roomCodeInput);
+  };
+
+  // Avanzar del Paso 1 (Tu Nombre) al Paso 2 (Merge/Identidad)
+  const handleNextFromJoinName = (e) => {
+    if (e) e.preventDefault();
+    if (!rawInputName.trim()) {
+      setErrorMsg('Por favor ingresá tu nombre o apodo.');
+      return;
+    }
+    setErrorMsg('');
+    const { cleanName } = processName(rawInputName);
+
+    if (allRoomPlayers.length > 0) {
+      const match = allRoomPlayers.find(
+        p => p.name.trim().toLowerCase() === cleanName.trim().toLowerCase()
+      );
+      if (match) {
+        setSelectedMergeSlot(match.name);
+      } else {
+        setSelectedMergeSlot(null);
+      }
+      setStepJoin('join_merge');
+    } else {
+      // Si no hay jugadores precargados, unirse directamente
+      handleClaimOrJoin(null);
+    }
   };
 
   // 3. ELEGIR NOMBRE O INGRESAR UNO NUEVO (SIN BLOQUEOS NI DUPLICADOS)
@@ -911,7 +941,9 @@ export default function App() {
             </motion.div>
           )}
 
-          {/* VISTA 1: CREAR O BUSCAR SALA */}
+          {/* ========================================================== */}
+          {/* VISTA 1: CREAR O BUSCAR SALA (PANTALLA DE INICIO)          */}
+          {/* ========================================================== */}
           {stepJoin === 'input_code' ? (
             <div className="space-y-6">
               {/* Tu Nombre */}
@@ -1024,78 +1056,242 @@ export default function App() {
                 </button>
               </div>
             </div>
-          ) : (
+          ) : stepJoin === 'join_name' ? (
             /* ========================================================== */
-            /* VISTA 2: ELECCIÓN DE IDENTIDAD GRANDE, CÓMODA Y VISUAL     */
+            /* WIZARD PASO 1: ¿CÓMO TE LLAMÁS? (LANDING AMPLIO Y CLARO)   */
             /* ========================================================== */
-            <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="space-y-6 animate-in fade-in duration-300">
               
-              {/* Header de la Selección */}
-              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                <div>
-                  <h3 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
-                    <UserCheck className="w-6 h-6 text-rose-500" /> ¿Quién sos en esta sala?
-                  </h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-slate-400">Sala:</span>
-                    <span className="text-xs font-mono font-black text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-md border border-rose-500/30">
+              {/* Stepper Header */}
+              <div className="flex items-center justify-between bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-rose-500/20 rounded-xl text-rose-400">
+                    <Flame className="w-5 h-5 fill-rose-500" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-black tracking-widest text-slate-400">Sala:</span>
+                    <p className="font-mono text-sm sm:text-base font-black text-rose-400 tracking-wider">
                       {roomCodeInput}
-                    </span>
+                    </p>
                   </div>
                 </div>
-                <button
-                  onClick={() => setStepJoin('input_code')}
-                  className="text-xs font-bold text-slate-400 hover:text-slate-200 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800 transition"
-                >
-                  Cambiar código
-                </button>
+
+                <div className="flex items-center gap-1.5 text-xs font-bold">
+                  <span className="px-2.5 py-1 rounded-xl bg-rose-600 text-white shadow-md">
+                    1. Tu Nombre
+                  </span>
+                  <span className="text-slate-600">➜</span>
+                  <span className="px-2.5 py-1 rounded-xl bg-slate-800 text-slate-500">
+                    2. Identidad
+                  </span>
+                </div>
               </div>
 
-              {/* Botones de Nombres GRANDES (1 solo toque) */}
-              {allRoomPlayers.length > 0 && (
-                <div>
-                  <label className="block text-xs sm:text-sm font-extrabold text-pink-400 uppercase tracking-wider mb-3">
-                    Tocá tu nombre para entrar de una:
-                  </label>
-                  
-                  <div className="grid grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-1">
-                    {allRoomPlayers.map((player) => (
-                      <button
-                        key={player.id}
-                        onClick={() => handleClaimOrJoin(player.name)}
-                        className="p-4 sm:p-4.5 bg-gradient-to-br from-purple-950/50 via-slate-900 to-slate-900 border-2 border-purple-500/40 hover:border-pink-500 hover:bg-purple-900/30 rounded-2xl text-base sm:text-lg font-black text-purple-200 hover:text-white transition flex items-center justify-between group shadow-lg active:scale-95 text-left"
-                      >
-                        <span className="truncate">{player.name}</span>
-                        <CheckCircle2 className="w-5 h-5 text-pink-400 opacity-60 group-hover:opacity-100 flex-shrink-0 ml-1.5" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <div className="text-center space-y-1.5 py-1">
+                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  ¡Te sumaste a la Previa! 👋
+                </h2>
+                <p className="text-sm text-slate-300">
+                  Ingresá tu nombre o apodo para que la ruleta te elija:
+                </p>
+              </div>
 
-              {/* Escribir nombre personalizado GRANDE */}
-              <div className="pt-3 border-t border-slate-800">
-                <label className="block text-xs sm:text-sm font-bold text-slate-300 mb-2">
-                  {allRoomPlayers.length > 0 ? 'O escribí otro nombre acá:' : 'Escribí tu nombre acá:'}
-                </label>
-                <div className="flex gap-2.5">
+              <form onSubmit={handleNextFromJoinName} className="space-y-5">
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-300">
+                      Tu Nombre o Apodo:
+                    </label>
+                    {isSecret && (
+                      <span className="text-xs font-black text-rose-400 flex items-center gap-1 bg-rose-500/15 px-2.5 py-1 rounded-full border border-rose-500/40 animate-pulse">
+                        <Lock className="w-3.5 h-3.5" /> Modo Trampa Activo
+                      </span>
+                    )}
+                  </div>
+
                   <input
                     type="text"
-                    maxLength={20}
-                    placeholder="Tu nombre o apodo..."
+                    maxLength={25}
+                    autoFocus
+                    placeholder="Ej: Fran, Sofi, Lucas, Nico..."
                     value={rawInputName}
-                    onChange={(e) => setRawInputName(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleClaimOrJoin(null))}
-                    className="flex-1 px-4 py-3.5 bg-slate-900 border border-slate-700 rounded-2xl text-white text-base font-semibold focus:outline-none focus:border-rose-500"
+                    onChange={(e) => {
+                      setRawInputName(e.target.value);
+                      if (errorMsg) setErrorMsg('');
+                    }}
+                    className={`w-full px-5 py-4 bg-slate-900/90 border rounded-2xl text-white placeholder-slate-500 focus:outline-none transition text-lg sm:text-xl font-bold ${
+                      isSecret
+                        ? 'border-rose-500 ring-2 ring-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.3)]'
+                        : 'border-slate-700 focus:border-rose-500'
+                    }`}
                   />
+                </div>
+
+                <div className="flex gap-3 pt-2">
                   <button
-                    onClick={() => handleClaimOrJoin(null)}
-                    disabled={!rawInputName.trim() || loading}
-                    className="px-5 py-3.5 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 disabled:opacity-50 text-white text-sm font-black rounded-2xl flex items-center gap-1.5 transition shadow-lg active:scale-95"
+                    type="button"
+                    onClick={() => {
+                      setStepJoin('input_code');
+                      setErrorMsg('');
+                    }}
+                    className="px-4 sm:px-5 py-3.5 bg-slate-800/90 hover:bg-slate-800 text-slate-300 hover:text-white font-bold rounded-2xl border border-slate-700/60 text-sm flex items-center gap-1.5 transition active:scale-95"
                   >
-                    Entrar <ArrowRight className="w-4 h-4" />
+                    <ArrowLeft className="w-4 h-4" /> Volver
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={!rawInputName.trim() || loading}
+                    className="flex-1 py-4 px-6 bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 hover:from-rose-700 hover:to-purple-700 disabled:opacity-50 text-white font-black text-base sm:text-lg rounded-2xl shadow-[0_0_25px_rgba(244,63,94,0.4)] transition-all transform active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <span>Siguiente</span>
+                    <ArrowRight className="w-5 h-5" />
                   </button>
                 </div>
+              </form>
+            </div>
+          ) : (
+            /* ========================================================== */
+            /* WIZARD PASO 2: MERGEARSE O ENTRAR COMO NUEVO               */
+            /* ========================================================== */
+            <div className="space-y-6 animate-in fade-in duration-300">
+              
+              {/* Stepper Header */}
+              <div className="flex items-center justify-between bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-rose-500/20 rounded-xl text-rose-400">
+                    <Flame className="w-5 h-5 fill-rose-500" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-black tracking-widest text-slate-400">Sala:</span>
+                    <p className="font-mono text-sm sm:text-base font-black text-rose-400 tracking-wider">
+                      {roomCodeInput}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 text-xs font-bold">
+                  <span className="px-2.5 py-1 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                    1. Tu Nombre ✓
+                  </span>
+                  <span className="text-slate-600">➜</span>
+                  <span className="px-2.5 py-1 rounded-xl bg-purple-600 text-white shadow-md">
+                    2. Identidad
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-center space-y-1 py-1">
+                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  ¡Hola, {processName(rawInputName).cleanName}! 🎉
+                </h2>
+                <p className="text-sm text-slate-300">
+                  ¿Querés entrar como jugador nuevo o sumarte en el lugar de alguien?
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {/* Opción 1: Entrar como Nuevo Jugador */}
+                <div
+                  onClick={() => setSelectedMergeSlot(null)}
+                  className={`p-4 sm:p-4.5 rounded-2xl border-2 cursor-pointer transition-all ${
+                    selectedMergeSlot === null
+                      ? 'bg-rose-500/15 border-rose-500 shadow-[0_0_25px_rgba(244,63,94,0.25)] ring-1 ring-rose-500'
+                      : 'bg-slate-900/70 border-slate-800 hover:border-slate-700 opacity-80'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2.5 rounded-xl ${selectedMergeSlot === null ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                        <UserPlus className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                          Entrar como "{processName(rawInputName).cleanName}"
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold uppercase">
+                            Nuevo
+                          </span>
+                        </h4>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          Se agregará tu casillero individual a la ruleta.
+                        </p>
+                      </div>
+                    </div>
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                      selectedMergeSlot === null ? 'border-rose-500 bg-rose-500' : 'border-slate-700'
+                    }`}>
+                      {selectedMergeSlot === null && <CheckCircle2 className="w-4 h-4 text-white" />}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Opción 2: Mergearse con un jugador preexistente */}
+                {allRoomPlayers.length > 0 && (
+                  <div className="pt-2">
+                    <label className="block text-xs font-extrabold uppercase tracking-wider text-purple-300 mb-2 flex items-center gap-1.5">
+                      <Users className="w-4 h-4 text-purple-400" />
+                      O mergearte / unirte como un miembro ya creado:
+                    </label>
+
+                    <div className="grid grid-cols-2 gap-2.5 max-h-52 overflow-y-auto pr-1">
+                      {allRoomPlayers.map((player) => {
+                        const isSelected = selectedMergeSlot === player.name;
+                        const isMatch = player.name.trim().toLowerCase() === processName(rawInputName).cleanName.toLowerCase();
+                        return (
+                          <button
+                            key={player.id}
+                            type="button"
+                            onClick={() => setSelectedMergeSlot(player.name)}
+                            className={`p-3.5 rounded-xl border-2 text-left transition-all relative flex flex-col justify-between ${
+                              isSelected
+                                ? 'bg-purple-600/25 border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.3)] ring-1 ring-purple-500 text-white'
+                                : 'bg-slate-900/80 border-slate-800 hover:border-purple-500/50 text-slate-300 hover:text-white'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-sm sm:text-base truncate">{player.name}</span>
+                              {isSelected && <CheckCircle2 className="w-4 h-4 text-purple-400 flex-shrink-0" />}
+                            </div>
+                            {isMatch && (
+                              <span className="text-[9px] font-black text-amber-300 uppercase tracking-widest mt-1">
+                                ✨ Coincide tu nombre
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStepJoin('join_name');
+                    setErrorMsg('');
+                  }}
+                  className="px-4 sm:px-5 py-3.5 bg-slate-800/90 hover:bg-slate-800 text-slate-300 hover:text-white font-bold rounded-2xl border border-slate-700/60 text-sm flex items-center gap-1.5 transition active:scale-95"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Atrás
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleClaimOrJoin(selectedMergeSlot)}
+                  disabled={loading}
+                  className="flex-1 py-4 px-6 bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 hover:from-rose-700 hover:to-purple-700 text-white font-black text-base sm:text-lg rounded-2xl shadow-[0_0_25px_rgba(244,63,94,0.4)] transition-all transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {loading ? (
+                    <span>Entrando a la sala...</span>
+                  ) : (
+                    <>
+                      <span>{selectedMergeSlot ? `Unirme como ${selectedMergeSlot}` : '¡Entrar a la Sala! 🔥'}</span>
+                      <ArrowRight className="w-5 h-5" />
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           )}
