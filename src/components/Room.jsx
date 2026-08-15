@@ -558,58 +558,108 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
             </>
           )}
 
-          {/* CASO 3: 💀 NIVEL FUEGO TOTAL -> FUEGO INTENSO CON CALAVERAS 💀 */}
+          {/* CASO 3: 💀 NIVEL FUEGO TOTAL -> ¡INFIERNO TOTAL QUE PRENDE FUEGO TODA LA PANTALLA! 💀 */}
           {currentSpice === 3 && (
             <>
-              {/* Borde ardiente extremo violeta y escarlata */}
+              {/* Quemadura extrema de bordes en los 4 costados */}
               <motion.div
                 animate={{
-                  opacity: [0.7, 1, 0.75, 1, 0.7],
+                  opacity: [0.85, 1, 0.9, 1, 0.85],
                   boxShadow: [
-                    "inset 0 0 45px rgba(168,85,247,0.8), inset 0 0 85px rgba(244,63,94,0.6)",
-                    "inset 0 0 80px rgba(168,85,247,1), inset 0 0 130px rgba(244,63,94,0.9)",
-                    "inset 0 0 45px rgba(168,85,247,0.8), inset 0 0 85px rgba(244,63,94,0.6)"
+                    "inset 0 0 60px rgba(225,29,72,0.9), inset 0 0 120px rgba(249,115,22,0.8), inset 0 0 200px rgba(234,88,12,0.6)",
+                    "inset 0 0 90px rgba(239,68,68,1), inset 0 0 160px rgba(245,158,11,0.9), inset 0 0 260px rgba(225,29,72,0.8)",
+                    "inset 0 0 60px rgba(225,29,72,0.9), inset 0 0 120px rgba(249,115,22,0.8), inset 0 0 200px rgba(234,88,12,0.6)"
                   ]
                 }}
-                transition={{ repeat: Infinity, duration: 1, ease: "easeInOut" }}
-                className="absolute inset-0 border-4 border-purple-500/70"
+                transition={{ repeat: Infinity, duration: 0.9, ease: "easeInOut" }}
+                className="absolute inset-0 border-8 border-red-500/80 mix-blend-screen"
               />
 
-              {/* Llamaradas colosales ascendentes */}
+              {/* Muralla de Fuego Infernal Gigante (cubre el 85% de la pantalla) */}
               <motion.div
                 animate={{
-                  y: [15, -30, 10, -45, 15],
-                  scaleY: [1, 1.45, 1.1, 1.55, 1],
-                  opacity: [0.8, 1, 0.85, 1, 0.8]
+                  y: [10, -35, 5, -45, 10],
+                  scaleY: [1, 1.25, 1.05, 1.3, 1],
+                  opacity: [0.75, 0.95, 0.8, 1, 0.75]
                 }}
-                transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
-                className="absolute bottom-0 left-0 right-0 h-52 bg-gradient-to-t from-purple-800/80 via-rose-600/60 to-transparent blur-2xl"
+                transition={{ repeat: Infinity, duration: 1.3, ease: "easeInOut" }}
+                className="absolute bottom-0 left-0 right-0 h-[80vh] bg-gradient-to-t from-red-600/80 via-orange-500/50 to-transparent blur-2xl pointer-events-none mix-blend-screen"
               />
 
-              {/* Calaveras flotantes 💀 y Llamas 💀 */}
-              <div className="absolute inset-0 flex justify-around items-end">
-                {[...Array(10)].map((_, i) => (
+              {/* Capa de fuego 2: Núcleo ardiente ultra brillante */}
+              <motion.div
+                animate={{
+                  y: [0, -40, -10, -55, 0],
+                  scaleX: [1, 1.2, 0.95, 1.25, 1],
+                  opacity: [0.7, 1, 0.85, 1, 0.7]
+                }}
+                transition={{ repeat: Infinity, duration: 1.1, ease: "easeInOut", delay: 0.15 }}
+                className="absolute bottom-0 left-0 right-0 h-[65vh] bg-gradient-to-t from-amber-500/90 via-rose-600/70 to-transparent blur-xl pointer-events-none mix-blend-screen"
+              />
+
+              {/* Llamas laterales izquierda y derecha quemando los costados */}
+              <motion.div
+                animate={{
+                  x: [-10, 15, -5, 10, -10],
+                  opacity: [0.6, 0.9, 0.7, 0.95, 0.6]
+                }}
+                transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-red-600/70 via-orange-500/40 to-transparent blur-xl"
+              />
+              <motion.div
+                animate={{
+                  x: [10, -15, 5, -10, 10],
+                  opacity: [0.6, 0.9, 0.7, 0.95, 0.6]
+                }}
+                transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut", delay: 0.2 }}
+                className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-red-600/70 via-orange-500/40 to-transparent blur-xl"
+              />
+
+              {/* Fuego cayendo desde arriba (techo en llamas) */}
+              <motion.div
+                animate={{
+                  y: [-10, 15, -5, 20, -10],
+                  opacity: [0.5, 0.85, 0.6, 0.9, 0.5]
+                }}
+                transition={{ repeat: Infinity, duration: 1.7, ease: "easeInOut" }}
+                className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-red-600/70 via-orange-500/35 to-transparent blur-xl"
+              />
+
+              {/* Lluvia ascendente de Calaveras 💀 y Fuegos 🔥 gigantes */}
+              <div className="absolute inset-0 flex justify-around items-end overflow-hidden">
+                {[...Array(14)].map((_, i) => (
                   <motion.div
                     key={i}
                     animate={{
-                      y: [0, -680],
-                      x: [0, (i % 2 === 0 ? 40 : -40), (i % 2 === 0 ? -30 : 30)],
-                      rotate: [0, (i % 2 === 0 ? 25 : -25), 0],
-                      opacity: [0, 1, 0.9, 0],
-                      scale: [0.6, 1.5, 1.1, 0]
+                      y: [0, -780],
+                      x: [0, (i % 2 === 0 ? 50 : -50), (i % 2 === 0 ? -35 : 35)],
+                      rotate: [0, (i % 2 === 0 ? 45 : -45), 0],
+                      opacity: [0, 1, 0.95, 0],
+                      scale: [0.6, 1.8, 1.2, 0]
                     }}
                     transition={{
                       repeat: Infinity,
-                      duration: 2.0 + (i * 0.25),
-                      delay: i * 0.18,
+                      duration: 1.8 + (i * 0.2),
+                      delay: i * 0.12,
                       ease: "easeOut"
                     }}
-                    className="text-2xl sm:text-4xl drop-shadow-[0_0_20px_rgba(168,85,247,0.9)] select-none"
+                    className="text-3xl sm:text-5xl drop-shadow-[0_0_25px_rgba(239,68,68,1)] select-none"
                   >
-                    {i % 2 === 0 ? '💀' : '🔥'}
+                    {i % 3 === 0 ? '💀' : i % 3 === 1 ? '🔥' : '💥'}
                   </motion.div>
                 ))}
               </div>
+
+              {/* Aviso Flotante Fuego Total */}
+              <motion.div
+                animate={{ scale: [1, 1.08, 1], opacity: [0.9, 1, 0.9] }}
+                transition={{ repeat: Infinity, duration: 0.8 }}
+                className="absolute top-6 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-gradient-to-r from-red-600 via-orange-500 to-red-600 border-2 border-amber-300 shadow-[0_0_30px_#ef4444] z-40 text-xs sm:text-sm font-black uppercase tracking-widest text-white flex items-center gap-1.5"
+              >
+                <span>💀</span>
+                <span>¡ESTÁS PRENDIDO FUEGO!</span>
+                <span>🔥</span>
+              </motion.div>
             </>
           )}
 
