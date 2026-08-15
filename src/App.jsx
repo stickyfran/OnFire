@@ -19,7 +19,8 @@ import {
   Zap,
   Maximize,
   Minimize,
-  Smartphone
+  Smartphone,
+  Download
 } from 'lucide-react';
 
 // Generador de ID único persistente en LocalStorage
@@ -53,6 +54,50 @@ export default function App() {
   // Lista de todos los jugadores de la sala para elegir en 1 toque
   const [allRoomPlayers, setAllRoomPlayers] = useState([]);
   const [stepJoin, setStepJoin] = useState('input_code'); // 'input_code' | 'choose_name'
+  
+  // Estado de Instalación PWA (Android / iOS / PC)
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
+
+  useEffect(() => {
+    // Detectar si ya se está ejecutando instalada como PWA
+    const checkInstalled = () => {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+      setIsInstalled(isStandalone);
+    };
+    checkInstalled();
+
+    // Capturar evento nativo de instalación en Android / Chrome / Edge
+    const handleBeforeInstall = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener('appinstalled', () => {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+    });
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+    };
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+        setIsInstalled(true);
+      }
+    } else {
+      setShowInstallModal(true);
+    }
+  };
+
   // Estado de Pantalla Completa
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showIOSTip, setShowIOSTip] = useState(false);
@@ -505,6 +550,8 @@ export default function App() {
           canCheat={canCheat}
           onLeave={handleLeaveRoom}
           appVersion={APP_VERSION}
+          onInstallApp={handleInstallApp}
+          isInstalled={isInstalled}
         />
       </>
     );
@@ -576,8 +623,20 @@ export default function App() {
         className="absolute -top-32 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-rose-600/15 rounded-full blur-[100px] pointer-events-none"
       />
 
-      {/* Botón Flotante Pantalla Completa en Welcome */}
-      <div className="absolute top-4 right-4 z-20">
+      {/* Botones Flotantes Superiores en Welcome */}
+      <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+        {!isInstalled && (
+          <button
+            type="button"
+            onClick={handleInstallApp}
+            className="p-2.5 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white rounded-2xl shadow-lg flex items-center gap-1.5 text-xs font-black backdrop-blur-md active:scale-95 transition"
+            title="Instalar OnFire como App"
+          >
+            <Download className="w-4 h-4" />
+            <span className="inline">Instalar App</span>
+          </button>
+        )}
+
         <button
           type="button"
           onClick={handleToggleFullscreen}
@@ -589,7 +648,70 @@ export default function App() {
         </button>
       </div>
 
-      {/* Modal Instructivo iPhone Safari */}
+      {/* Modal Instructivo de Instalación PWA (Android / iPhone) */}
+      <AnimatePresence>
+        {showInstallModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 15 }}
+              className="bg-slate-900 border-2 border-rose-500/50 p-6 rounded-3xl w-full max-w-md shadow-2xl space-y-4 text-center flex flex-col items-center relative overflow-hidden"
+            >
+              <div className="p-3 bg-gradient-to-tr from-rose-600 to-pink-600 rounded-2xl text-white shadow-lg">
+                <Smartphone className="w-8 h-8" />
+              </div>
+
+              <div>
+                <h3 className="text-xl font-black text-white">Instalar OnFire en tu Celular</h3>
+                <p className="text-xs text-slate-300 mt-1">
+                  Jugá en pantalla completa sin barras del navegador y con carga instantánea.
+                </p>
+              </div>
+
+              <div className="w-full space-y-3 text-left">
+                {/* Paso a paso iPhone */}
+                <div className="p-3.5 bg-slate-800/90 border border-slate-700/70 rounded-2xl">
+                  <p className="text-xs font-black text-pink-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                    🍏 En iPhone / iPad (Safari):
+                  </p>
+                  <ol className="text-xs text-slate-300 space-y-1 list-decimal list-inside leading-relaxed">
+                    <li>Tocá el botón <strong>Compartir (⎋)</strong> abajo en Safari.</li>
+                    <li>Buscá y seleccioná <strong>"Agregar a Inicio" ➕</strong>.</li>
+                    <li>Tocá <strong>"Agregar"</strong> arriba a la derecha.</li>
+                  </ol>
+                </div>
+
+                {/* Paso a paso Android */}
+                <div className="p-3.5 bg-slate-800/90 border border-slate-700/70 rounded-2xl">
+                  <p className="text-xs font-black text-emerald-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                    🤖 En Android (Chrome / Brave):
+                  </p>
+                  <ol className="text-xs text-slate-300 space-y-1 list-decimal list-inside leading-relaxed">
+                    <li>Tocá los <strong>tres puntitos (⋮)</strong> arriba a la derecha.</li>
+                    <li>Seleccioná <strong>"Instalar aplicación"</strong> o <strong>"Agregar a pantalla principal"</strong>.</li>
+                  </ol>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowInstallModal(false)}
+                className="w-full py-3.5 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-black rounded-xl text-sm transition shadow-lg active:scale-95"
+              >
+                ¡Listo, entendido!
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal Instructivo iPhone Safari (desde botón fullscreen) */}
       <AnimatePresence>
         {showIOSTip && (
           <motion.div
@@ -920,7 +1042,19 @@ export default function App() {
 
         {/* Footer info & Versión */}
         <div className="text-center mt-6 text-xs text-slate-400 font-medium flex flex-col items-center gap-1.5">
-          <p>Instalalo como App (PWA) o jugalo en pantalla completa 📱</p>
+          {!isInstalled ? (
+            <button
+              type="button"
+              onClick={handleInstallApp}
+              className="text-pink-400 hover:text-pink-300 font-bold underline underline-offset-4 flex items-center gap-1 transition"
+            >
+              <Download className="w-3.5 h-3.5" /> Instalalo como App (PWA) en tu celular 📱
+            </button>
+          ) : (
+            <p className="text-emerald-400 font-semibold flex items-center gap-1">
+              ✓ App instalada correctamente 📱
+            </p>
+          )}
           <span className="px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-[11px] font-mono text-slate-400">
             {APP_VERSION}
           </span>

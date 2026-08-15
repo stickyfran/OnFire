@@ -65,7 +65,17 @@ const playVerdadSound = () => {
   setTimeout(() => playTone(880.00, 0.4, 'sine'), 200);
 };
 
-export default function Room({ roomId, playerId, playerName, isHost, canCheat, onLeave, appVersion = 'v1.00' }) {
+export default function Room({ 
+  roomId, 
+  playerId, 
+  playerName, 
+  isHost, 
+  canCheat, 
+  onLeave, 
+  appVersion = 'v1.00',
+  onInstallApp,
+  isInstalled = false
+}) {
   const [roomData, setRoomData] = useState(null);
   const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -840,6 +850,17 @@ export default function Room({ roomId, playerId, playerName, isHost, canCheat, o
           >
             {isFullscreen ? <Minimize className="w-4 h-4 text-amber-400" /> : <Maximize className="w-4 h-4" />}
           </button>
+
+          {/* Botón Instalar App (PWA) */}
+          {!isInstalled && onInstallApp && (
+            <button
+              onClick={onInstallApp}
+              className="p-2 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 rounded-xl text-white transition shadow-sm flex items-center justify-center"
+              title="Instalar OnFire en tu celular"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {isHost || canCheat ? (
