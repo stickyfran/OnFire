@@ -1,7 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import { ALL_CHALLENGES } from './data/challenges';
 
 // Lazy loading del componente Room para carga instantánea del Landing
 const Room = lazy(() => import('./components/Room'));
@@ -416,7 +415,7 @@ export default function App() {
         nextPair: null,
         spiceLevel: 1,
         roundCount: 0,
-        challenges: ALL_CHALLENGES,
+        challenges: null,
         players: initialPlayers
       };
 

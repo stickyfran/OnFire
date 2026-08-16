@@ -939,7 +939,8 @@ export default function Room({
   };
 
   const handleExportChallenges = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(roomData.challenges || [], null, 2));
+    const activeList = (roomData.challenges && roomData.challenges.length > 0) ? roomData.challenges : ALL_CHALLENGES;
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(activeList, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href", dataStr);
     downloadAnchor.setAttribute("download", `onfire_retos_${roomId}.json`);
@@ -1022,8 +1023,12 @@ export default function Room({
   // Determinar si los superpoderes de trampa están activos visualmente
   const isCheatActiveVisual = canCheat && cheatUIVisible;
 
-  // Lista filtrada para el buscador de retos del Papito
-  const filteredSearchChallenges = (roomData.challenges || []).filter(c => 
+  // Lista filtrada para el buscador de retos del Papito (usa pool activo o base completa)
+  const activeChallengesPool = (roomData.challenges && roomData.challenges.length > 0) 
+    ? roomData.challenges 
+    : ALL_CHALLENGES;
+
+  const filteredSearchChallenges = activeChallengesPool.filter(c => 
     c.texto.toLowerCase().includes(challengeSearchTerm.toLowerCase()) ||
     c.tipo.toLowerCase().includes(challengeSearchTerm.toLowerCase())
   ).slice(0, 30);
@@ -2390,7 +2395,7 @@ export default function Room({
                   {/* Base de Retos */}
                   <div>
                     <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                      Base de Retos ({roomData.challenges?.length || 0})
+                      Base de Retos ({activeChallengesPool.length})
                     </h4>
                     <div className="grid grid-cols-2 gap-2">
                       <button

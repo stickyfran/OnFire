@@ -3,10 +3,19 @@
 @tailwind utilities;
 
 @layer base {
+  *, ::before, ::after {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
     background-color: #090d16;
     color: #f8fafc;
     font-family: 'Outfit', sans-serif;
+    touch-action: manipulation;
+  }
+
+  button, a, input, [role="button"] {
+    touch-action: manipulation;
   }
 }
 
