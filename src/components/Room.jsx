@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { ALL_CHALLENGES } from '../data/challenges';
@@ -664,6 +664,20 @@ export default function Room({
     };
   }, [roomId]);
 
+  // Optimización de trigonometría orbital de jugadores (memoizada incondicionalmente al tope del componente)
+  const playersCount = roomData?.players?.length || 0;
+  const playerPositions = useMemo(() => {
+    const total = Math.max(1, playersCount);
+    return Array.from({ length: total }, (_, idx) => {
+      const angleRad = ((idx * (360 / total)) - 90) * (Math.PI / 180);
+      const radiusPercent = 43;
+      return {
+        left: `${50 + radiusPercent * Math.cos(angleRad)}%`,
+        top: `${50 + radiusPercent * Math.sin(angleRad)}%`
+      };
+    });
+  }, [playersCount]);
+
   // Doble toque en #Ronda para ocultar/mostrar superpoderes de trampa
   const handleRondaDoubleTap = () => {
     if (!canCheat) return;
@@ -1027,19 +1041,6 @@ export default function Room({
   const target2Player = playersList.find(p => p.id === roomData.nextPair);
   const fixedChallenge = roomData.nextChallenge;
   const currentChallenge = roomData.currentChallenge;
-
-  // Optimización de trigonometría orbital de jugadores (memoizada por cantidad de jugadores)
-  const playerPositions = useMemo(() => {
-    const total = Math.max(1, playersList.length);
-    return playersList.map((_, idx) => {
-      const angleRad = ((idx * (360 / total)) - 90) * (Math.PI / 180);
-      const radiusPercent = 43;
-      return {
-        left: `${50 + radiusPercent * Math.cos(angleRad)}%`,
-        top: `${50 + radiusPercent * Math.sin(angleRad)}%`
-      };
-    });
-  }, [playersList.length]);
 
   // Identificación personalizada de la interacción en pantalla
   const isMeActor = roomData.currentResult && (
