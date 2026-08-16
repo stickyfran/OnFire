@@ -705,51 +705,21 @@ export default function App() {
     <div className="min-h-[100dvh] bg-slate-950 flex flex-col items-center justify-start sm:justify-center p-3 sm:p-6 pb-20 sm:pb-8 relative overflow-y-auto select-none">
       
       {/* ========================================================== */}
-      {/* ANIMACIÓN DE FONDO: INCENDIO VIBRANTE QUE APARECE Y DESAPARECE */}
+      {/* ANIMACIÓN DE FONDO: INCENDIO VIBRANTE PRECOMPILADO (GPU)   */}
       {/* ========================================================== */}
       
       {/* Resplandor principal de fuego pulsante */}
-      <motion.div
-        animate={{
-          opacity: [0.2, 0.75, 0.35, 0.85, 0.2],
-          scale: [0.95, 1.2, 1.05, 1.25, 0.95],
-          y: [0, -30, -10, -40, 0]
-        }}
-        transition={{
-          repeat: Infinity,
-          duration: 6,
-          ease: "easeInOut"
-        }}
-        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] sm:w-[850px] h-[450px] bg-gradient-to-t from-rose-600/40 via-orange-500/25 to-transparent rounded-full blur-[100px] pointer-events-none"
-      />
+      <div className="absolute bottom-0 left-1/2 w-[600px] sm:w-[850px] h-[450px] bg-gradient-to-t from-rose-600/40 via-orange-500/25 to-transparent rounded-full blur-[90px] pointer-events-none transform-gpu anim-landing-fire" />
 
       {/* Llamaradas secundarias izquierda/derecha */}
-      <motion.div
-        animate={{
-          opacity: [0.15, 0.6, 0.2, 0.7, 0.15],
-          scale: [0.9, 1.15, 1, 1.2, 0.9]
-        }}
-        transition={{
-          repeat: Infinity,
-          duration: 4.8,
-          ease: "easeInOut",
-          delay: 0.7
-        }}
-        className="absolute -bottom-20 -left-20 w-96 h-96 bg-gradient-to-tr from-amber-600/30 via-rose-600/25 to-transparent rounded-full blur-[90px] pointer-events-none"
+      <div 
+        style={{ animationDelay: '0.7s' }}
+        className="absolute -bottom-20 -left-20 w-96 h-96 bg-gradient-to-tr from-amber-600/30 via-rose-600/25 to-transparent rounded-full blur-[80px] pointer-events-none transform-gpu anim-landing-fire" 
       />
 
-      <motion.div
-        animate={{
-          opacity: [0.15, 0.65, 0.25, 0.8, 0.15],
-          scale: [0.9, 1.2, 0.95, 1.25, 0.9]
-        }}
-        transition={{
-          repeat: Infinity,
-          duration: 5.2,
-          ease: "easeInOut",
-          delay: 1.4
-        }}
-        className="absolute -bottom-20 -right-20 w-96 h-96 bg-gradient-to-tl from-purple-600/30 via-pink-600/25 to-transparent rounded-full blur-[90px] pointer-events-none"
+      <div 
+        style={{ animationDelay: '1.4s' }}
+        className="absolute -bottom-20 -right-20 w-96 h-96 bg-gradient-to-tl from-purple-600/30 via-pink-600/25 to-transparent rounded-full blur-[80px] pointer-events-none transform-gpu anim-landing-fire" 
       />
 
       {/* Luz superior misteriosa */}

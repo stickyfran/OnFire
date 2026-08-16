@@ -33,3 +33,171 @@
 .neon-text {
   text-shadow: 0 0 10px rgba(244, 63, 94, 0.6), 0 0 20px rgba(217, 70, 239, 0.4);
 }
+
+/* ========================================================= */
+/* ANIMACIONES PRECOMPILADAS GPU PARA RESOLUCIONES DE CELULAR */
+/* Corre 100% en el compositor GPU (0% consumo de hilo JS)   */
+/* ========================================================= */
+
+@keyframes particle-rise-left {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.6) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate3d(-30px, -92dvh, 0) scale(1.2) rotate(-25deg);
+    opacity: 0;
+  }
+}
+
+@keyframes particle-rise-center {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.7) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate3d(15px, -95dvh, 0) scale(1.25) rotate(20deg);
+    opacity: 0;
+  }
+}
+
+@keyframes particle-rise-right {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.5) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate3d(35px, -92dvh, 0) scale(1.15) rotate(30deg);
+    opacity: 0;
+  }
+}
+
+@keyframes particle-fall-chili {
+  0% {
+    transform: translate3d(0, -50px, 0) scale(0.7) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate3d(20px, 105dvh, 0) scale(1.1) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes flame-pulse-glow {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scaleY(1);
+    opacity: 0.75;
+  }
+  50% {
+    transform: translate3d(0, -15px, 0) scaleY(1.12);
+    opacity: 0.95;
+  }
+}
+
+@keyframes spin-fire-ring-fast {
+  from { transform: translate3d(0, 0, 0) rotate(0deg); }
+  to { transform: translate3d(0, 0, 0) rotate(360deg); }
+}
+
+@keyframes spin-fire-ring-slow {
+  from { transform: translate3d(0, 0, 0) rotate(0deg); }
+  to { transform: translate3d(0, 0, 0) rotate(360deg); }
+}
+
+@keyframes landing-fire-ambience {
+  0%, 100% {
+    transform: translate3d(-50%, 0, 0) scale(0.95);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translate3d(-50%, -20px, 0) scale(1.18);
+    opacity: 0.85;
+  }
+}
+
+@keyframes text-badge-pulse {
+  0%, 100% {
+    transform: translate3d(-50%, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-50%, 0, 0) scale(1.04);
+  }
+}
+
+.anim-particle-left {
+  animation: particle-rise-left 2.3s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  will-change: transform, opacity;
+  transform: translate3d(0, 0, 0);
+}
+
+.anim-particle-center {
+  animation: particle-rise-center 2.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  will-change: transform, opacity;
+  transform: translate3d(0, 0, 0);
+}
+
+.anim-particle-right {
+  animation: particle-rise-right 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  will-change: transform, opacity;
+  transform: translate3d(0, 0, 0);
+}
+
+.anim-chili-fall {
+  animation: particle-fall-chili 2.8s ease-in infinite;
+  will-change: transform, opacity;
+  transform: translate3d(0, 0, 0);
+}
+
+.anim-flame-glow {
+  animation: flame-pulse-glow 2s ease-in-out infinite;
+  will-change: transform, opacity;
+  transform: translate3d(0, 0, 0);
+}
+
+.anim-ring-spin-fast {
+  animation: spin-fire-ring-fast 2.5s linear infinite;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+}
+
+.anim-ring-spin-slow {
+  animation: spin-fire-ring-slow 8s linear infinite;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+}
+
+.anim-landing-fire {
+  animation: landing-fire-ambience 5s ease-in-out infinite;
+  will-change: transform, opacity;
+  transform: translate3d(-50%, 0, 0);
+}
+
+.anim-badge-pulse {
+  animation: text-badge-pulse 1.2s ease-in-out infinite;
+  will-change: transform;
+  transform: translate3d(-50%, 0, 0);
+}

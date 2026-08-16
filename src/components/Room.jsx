@@ -148,175 +148,143 @@ const playRoundStartSound = (muted = false) => {
 };
 
 // =========================================================
-// COMPONENTE DE FUEGO EN PANTALLA MEMOIZADO (CON MODO SPECS BAJAS)
+// COMPONENTE DE FUEGO EN PANTALLA MEMOIZADO (GPU PRECOMPILADO)
 // =========================================================
 const ScreenFireEffect = React.memo(function ScreenFireEffect({ currentSpice, isVisible, lowSpecsMode = false }) {
+  if (!isVisible) return null;
+
   return (
-    <AnimatePresence>
-      {isVisible && (
-        <div
-          key="screen-fire-overlay"
-          className="fixed inset-0 pointer-events-none z-30 overflow-hidden will-change-transform"
-        >
-          {/* MODO SPECS BAJAS / RENDIMIENTO OPTIMIZADO */}
-          {lowSpecsMode ? (
+    <div
+      key="screen-fire-overlay"
+      className="fixed inset-0 pointer-events-none z-30 overflow-hidden transform-gpu will-change-transform"
+    >
+      {/* MODO SPECS BAJAS / RENDIMIENTO OPTIMIZADO */}
+      {lowSpecsMode ? (
+        <>
+          {currentSpice === 1 && (
+            <div className="absolute inset-0 border-2 border-amber-500/50 shadow-[inset_0_0_20px_rgba(245,158,11,0.3)] pointer-events-none" />
+          )}
+          {currentSpice === 2 && (
+            <div className="absolute inset-0 border-3 border-rose-500/60 shadow-[inset_0_0_30px_rgba(244,63,94,0.4)] pointer-events-none" />
+          )}
+          {currentSpice >= 3 && (
             <>
-              {currentSpice === 1 && (
-                <div className="absolute inset-0 border-2 border-amber-500/50 shadow-[inset_0_0_20px_rgba(245,158,11,0.3)] pointer-events-none" />
-              )}
-              {currentSpice === 2 && (
-                <div className="absolute inset-0 border-3 border-rose-500/60 shadow-[inset_0_0_30px_rgba(244,63,94,0.4)] pointer-events-none" />
-              )}
-              {currentSpice >= 3 && (
-                <>
-                  <div className="absolute inset-0 border-4 border-red-500/80 shadow-[inset_0_0_40px_rgba(239,68,68,0.5)] pointer-events-none" />
-                  <div className="absolute top-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-red-600 border border-amber-300 z-40 text-xs font-black uppercase tracking-widest text-white flex items-center gap-1 shadow-md">
-                    <span>💀</span>
-                    <span>¡ESTÁS PRENDIDO FUEGO!</span>
-                    <span>🔥</span>
-                  </div>
-                </>
-              )}
-            </>
-          ) : (
-            <>
-              {/* CASO 1: 🌶️ NIVEL SUAVE */}
-              {currentSpice === 1 && (
-                <>
-                  <div className="absolute inset-0 border-2 border-amber-500/40 shadow-[inset_0_0_35px_rgba(245,158,11,0.4)] animate-pulse" />
-                  <div className="absolute bottom-0 left-0 right-0 h-28 bg-gradient-to-t from-amber-500/30 via-orange-500/15 to-transparent blur-lg" />
-                  <div className="absolute inset-0 flex justify-around">
-                    {[...Array(10)].map((_, i) => (
-                      <motion.div
-                        key={`chili-${i}`}
-                        initial={{ y: -50, opacity: 0 }}
-                        animate={{
-                          y: [-30, 750],
-                          x: [0, (i % 2 === 0 ? 25 : -25), (i % 2 === 0 ? -15 : 15)],
-                          rotate: [0, (i % 2 === 0 ? 360 : -360)],
-                          opacity: [0, 1, 1, 0],
-                          scale: [0.7, 1.15, 1, 0.8]
-                        }}
-                        transition={{
-                          repeat: Infinity,
-                          duration: 2.8 + (i * 0.2),
-                          delay: i * 0.18,
-                          ease: "easeIn"
-                        }}
-                        className="text-2xl sm:text-3xl drop-shadow-[0_0_10px_rgba(245,158,11,0.8)] select-none"
-                      >
-                        🌶️
-                      </motion.div>
-                    ))}
-                  </div>
-                </>
-              )}
-
-              {/* CASO 2: 🔥 NIVEL CALIENTE */}
-              {currentSpice === 2 && (
-                <>
-                  <div className="absolute inset-0 border-2 border-rose-500/50 shadow-[inset_0_0_45px_rgba(244,63,94,0.5)] animate-pulse" />
-                  <div className="absolute bottom-0 left-0 right-0 h-36 bg-gradient-to-t from-rose-600/50 via-orange-500/30 to-transparent blur-lg" />
-                  <div className="absolute inset-0 flex justify-around items-end">
-                    {[...Array(8)].map((_, i) => (
-                      <motion.div
-                        key={`flame-${i}`}
-                        animate={{
-                          y: [0, -550],
-                          x: [0, (i % 2 === 0 ? 25 : -25), 0],
-                          opacity: [0, 0.9, 0.8, 0],
-                          scale: [0.5, 1.2, 0.8, 0]
-                        }}
-                        transition={{
-                          repeat: Infinity,
-                          duration: 2.2 + (i * 0.25),
-                          delay: i * 0.2,
-                          ease: "easeOut"
-                        }}
-                        className="text-xl sm:text-2xl drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] select-none"
-                      >
-                        🔥
-                      </motion.div>
-                    ))}
-                  </div>
-                </>
-              )}
-
-              {/* CASO 3 & 4: 💀🔥 NIVEL FUEGO TOTAL & EXTREMO */}
-              {currentSpice >= 3 && (
-                <>
-                  <div 
-                    className="absolute inset-0 border-4 border-red-500/70 animate-pulse pointer-events-none"
-                    style={{ boxShadow: "inset 0 0 50px rgba(239,68,68,0.8), inset 0 0 100px rgba(249,115,22,0.6)" }}
-                  />
-
-                  <motion.div
-                    animate={{
-                      y: [10, -20, 10],
-                      scaleY: [1, 1.15, 1],
-                      opacity: [0.75, 0.95, 0.75]
-                    }}
-                    transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                    className="absolute bottom-0 left-0 right-0 h-[65vh] bg-gradient-to-t from-red-600/80 via-orange-500/40 to-transparent blur-xl pointer-events-none"
-                  />
-
-                  <motion.div
-                    animate={{
-                      y: [0, -25, 0],
-                      opacity: [0.7, 0.95, 0.7]
-                    }}
-                    transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut", delay: 0.2 }}
-                    className="absolute bottom-0 left-0 right-0 h-[45vh] bg-gradient-to-t from-amber-500/80 via-rose-600/60 to-transparent blur-lg pointer-events-none"
-                  />
-
-                  <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-red-600/50 via-orange-500/25 to-transparent blur-lg pointer-events-none" />
-                  <div className="absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-red-600/50 via-orange-500/25 to-transparent blur-lg pointer-events-none" />
-
-                  <div className="absolute inset-0 flex justify-around items-end overflow-hidden pointer-events-none">
-                    {[...Array(9)].map((_, i) => (
-                      <motion.div
-                        key={`skull-fire-${i}`}
-                        animate={{
-                          y: [30, -650],
-                          x: [0, (i % 2 === 0 ? 25 : -25), 0],
-                          rotate: [0, (i % 2 === 0 ? 20 : -20), 0],
-                          opacity: [0, 1, 0.9, 0],
-                          scale: [0.6, 1.3, 1, 0.4]
-                        }}
-                        transition={{
-                          repeat: Infinity,
-                          duration: 2.3 + (i * 0.22),
-                          delay: i * 0.18,
-                          ease: "easeOut"
-                        }}
-                        className="text-2xl sm:text-4xl drop-shadow-[0_0_16px_rgba(239,68,68,0.9)] select-none"
-                      >
-                        {i % 3 === 0 ? '💀' : i % 3 === 1 ? '🔥' : '💥'}
-                      </motion.div>
-                    ))}
-                  </div>
-
-                  <motion.div
-                    animate={{ scale: [1, 1.04, 1], opacity: [0.9, 1, 0.9] }}
-                    transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
-                    className="absolute top-6 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-gradient-to-r from-red-600 via-orange-500 to-red-600 border-2 border-amber-300 shadow-[0_0_25px_#ef4444] z-40 text-xs sm:text-sm font-black uppercase tracking-widest text-white flex items-center gap-1.5"
-                  >
-                    <span>💀</span>
-                    <span>¡ESTÁS PRENDIDO FUEGO!</span>
-                    <span>🔥</span>
-                  </motion.div>
-                </>
-              )}
+              <div className="absolute inset-0 border-4 border-red-500/80 shadow-[inset_0_0_40px_rgba(239,68,68,0.5)] pointer-events-none" />
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-red-600 border border-amber-300 z-40 text-xs font-black uppercase tracking-widest text-white flex items-center gap-1 shadow-md">
+                <span>💀</span>
+                <span>{currentSpice === 4 ? '¡NIVEL EXTREMO!' : '¡PRENDIDO FUEGO!'}</span>
+                <span>🔥</span>
+              </div>
             </>
           )}
-        </div>
+        </>
+      ) : (
+        <>
+          {/* CASO 1: 🌶️ NIVEL SUAVE */}
+          {currentSpice === 1 && (
+            <>
+              <div className="absolute inset-0 border-2 border-amber-500/40 shadow-[inset_0_0_35px_rgba(245,158,11,0.4)] animate-pulse" />
+              <div className="absolute bottom-0 left-0 right-0 h-28 bg-gradient-to-t from-amber-500/30 via-orange-500/15 to-transparent blur-lg transform-gpu" />
+              <div className="absolute inset-0 overflow-hidden">
+                {[
+                  { left: '10%', delay: '0s' },
+                  { left: '22%', delay: '0.4s' },
+                  { left: '35%', delay: '1.1s' },
+                  { left: '50%', delay: '0.2s' },
+                  { left: '63%', delay: '0.8s' },
+                  { left: '76%', delay: '1.4s' },
+                  { left: '88%', delay: '0.6s' }
+                ].map((item, i) => (
+                  <div
+                    key={`chili-${i}`}
+                    style={{ left: item.left, animationDelay: item.delay }}
+                    className="absolute top-0 text-2xl sm:text-3xl drop-shadow-[0_0_10px_rgba(245,158,11,0.8)] select-none anim-chili-fall"
+                  >
+                    🌶️
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* CASO 2: 🔥 NIVEL CALIENTE */}
+          {currentSpice === 2 && (
+            <>
+              <div className="absolute inset-0 border-2 border-rose-500/50 shadow-[inset_0_0_45px_rgba(244,63,94,0.5)] animate-pulse" />
+              <div className="absolute bottom-0 left-0 right-0 h-36 bg-gradient-to-t from-rose-600/50 via-orange-500/30 to-transparent blur-lg transform-gpu" />
+              <div className="absolute inset-0 overflow-hidden">
+                {[
+                  { left: '12%', delay: '0s', anim: 'anim-particle-left' },
+                  { left: '26%', delay: '0.5s', anim: 'anim-particle-center' },
+                  { left: '42%', delay: '1.2s', anim: 'anim-particle-right' },
+                  { left: '58%', delay: '0.3s', anim: 'anim-particle-left' },
+                  { left: '74%', delay: '0.9s', anim: 'anim-particle-center' },
+                  { left: '88%', delay: '0.6s', anim: 'anim-particle-right' }
+                ].map((item, i) => (
+                  <div
+                    key={`flame-${i}`}
+                    style={{ left: item.left, animationDelay: item.delay }}
+                    className={`absolute bottom-0 text-xl sm:text-2xl drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] select-none ${item.anim}`}
+                  >
+                    🔥
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* CASO 3 & 4: 💀🔥 NIVEL FUEGO TOTAL & EXTREMO */}
+          {currentSpice >= 3 && (
+            <>
+              <div 
+                className="absolute inset-0 border-4 border-red-500/70 animate-pulse pointer-events-none"
+                style={{ boxShadow: "inset 0 0 50px rgba(239,68,68,0.8), inset 0 0 100px rgba(249,115,22,0.6)" }}
+              />
+
+              <div className="absolute bottom-0 left-0 right-0 h-[65dvh] bg-gradient-to-t from-red-600/80 via-orange-500/40 to-transparent blur-xl pointer-events-none transform-gpu anim-flame-glow" />
+              <div 
+                style={{ animationDelay: '0.3s' }}
+                className="absolute bottom-0 left-0 right-0 h-[45dvh] bg-gradient-to-t from-amber-500/80 via-rose-600/60 to-transparent blur-lg pointer-events-none transform-gpu anim-flame-glow" 
+              />
+
+              <div className="absolute inset-y-0 left-0 w-16 sm:w-20 bg-gradient-to-r from-red-600/50 via-orange-500/25 to-transparent blur-lg pointer-events-none" />
+              <div className="absolute inset-y-0 right-0 w-16 sm:w-20 bg-gradient-to-l from-red-600/50 via-orange-500/25 to-transparent blur-lg pointer-events-none" />
+
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                {[
+                  { left: '10%', delay: '0s', char: '💀', anim: 'anim-particle-left' },
+                  { left: '22%', delay: '0.4s', char: '🔥', anim: 'anim-particle-center' },
+                  { left: '36%', delay: '1.0s', char: '💥', anim: 'anim-particle-right' },
+                  { left: '50%', delay: '0.2s', char: currentSpice === 4 ? '🔞' : '🔥', anim: 'anim-particle-center' },
+                  { left: '64%', delay: '0.8s', char: '💀', anim: 'anim-particle-left' },
+                  { left: '78%', delay: '1.3s', char: '🔥', anim: 'anim-particle-right' },
+                  { left: '90%', delay: '0.5s', char: '⚡', anim: 'anim-particle-center' }
+                ].map((item, i) => (
+                  <div
+                    key={`skull-fire-${i}`}
+                    style={{ left: item.left, animationDelay: item.delay }}
+                    className={`absolute bottom-0 text-2xl sm:text-4xl drop-shadow-[0_0_16px_rgba(239,68,68,0.9)] select-none ${item.anim}`}
+                  >
+                    {item.char}
+                  </div>
+                ))}
+              </div>
+
+              <div className="absolute top-6 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-gradient-to-r from-red-600 via-orange-500 to-red-600 border-2 border-amber-300 shadow-[0_0_25px_#ef4444] z-40 text-xs sm:text-sm font-black uppercase tracking-widest text-white flex items-center gap-1.5 anim-badge-pulse">
+                <span>💀</span>
+                <span>{currentSpice === 4 ? '¡NIVEL EXTREMO TOTAL!' : '¡ESTÁS PRENDIDO FUEGO!'}</span>
+                <span>🔥</span>
+              </div>
+            </>
+          )}
+        </>
       )}
-    </AnimatePresence>
+    </div>
   );
 });
 
 // =========================================================
-// ANILLO DE FUEGO DE LA RULETA MEMOIZADO (GIRO CONTINUO 60FPS)
+// ANILLO DE FUEGO DE LA RULETA MEMOIZADO (GPU PRECOMPILADO)
 // =========================================================
 const RouletteFireRing = React.memo(function RouletteFireRing({ isSpinning, lowSpecsMode = false }) {
   if (lowSpecsMode) {
@@ -328,14 +296,10 @@ const RouletteFireRing = React.memo(function RouletteFireRing({ isSpinning, lowS
   return (
     <>
       <div className="absolute -inset-4 sm:-inset-6 rounded-full bg-gradient-to-tr from-red-600 via-orange-500 to-amber-300 blur-xl opacity-80 pointer-events-none animate-pulse" />
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{
-          repeat: Infinity,
-          duration: isSpinning ? 2.5 : 8,
-          ease: "linear"
-        }}
-        className="absolute -inset-3 sm:-inset-4 pointer-events-none"
+      <div
+        className={`absolute -inset-3 sm:-inset-4 pointer-events-none ${
+          isSpinning ? 'anim-ring-spin-fast' : 'anim-ring-spin-slow'
+        }`}
       >
         {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => (
           <div
@@ -348,7 +312,7 @@ const RouletteFireRing = React.memo(function RouletteFireRing({ isSpinning, lowS
             </span>
           </div>
         ))}
-      </motion.div>
+      </div>
     </>
   );
 });
