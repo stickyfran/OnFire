@@ -56,7 +56,19 @@ export default defineConfig({
   ],
   base: './',
   build: {
-    outDir: 'dist'
+    outDir: 'dist',
+    chunkSizeWarningLimit: 800,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-framer': ['framer-motion'],
+          'vendor-firebase': ['firebase/app', 'firebase/firestore'],
+          'vendor-icons': ['lucide-react'],
+          'vendor-qr': ['qrcode.react']
+        }
+      }
+    }
   }
 })
 

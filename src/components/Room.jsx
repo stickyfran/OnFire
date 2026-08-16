@@ -1028,6 +1028,19 @@ export default function Room({
   const fixedChallenge = roomData.nextChallenge;
   const currentChallenge = roomData.currentChallenge;
 
+  // Optimización de trigonometría orbital de jugadores (memoizada por cantidad de jugadores)
+  const playerPositions = useMemo(() => {
+    const total = Math.max(1, playersList.length);
+    return playersList.map((_, idx) => {
+      const angleRad = ((idx * (360 / total)) - 90) * (Math.PI / 180);
+      const radiusPercent = 43;
+      return {
+        left: `${50 + radiusPercent * Math.cos(angleRad)}%`,
+        top: `${50 + radiusPercent * Math.sin(angleRad)}%`
+      };
+    });
+  }, [playersList.length]);
+
   // Identificación personalizada de la interacción en pantalla
   const isMeActor = roomData.currentResult && (
     roomData.currentResult.id === playerId || 
@@ -1568,12 +1581,7 @@ export default function Room({
 
           {/* JUGADORES DISTRIBUIDOS EN ÓRBITA ALREDEDOR DE LA RULETA */}
           {playersList.map((player, idx) => {
-            const total = playersList.length;
-            const angleRad = ((idx * (360 / Math.max(1, total))) - 90) * (Math.PI / 180);
-            const radiusPercent = 43; // Distancia radial en %
-            const leftPercent = 50 + radiusPercent * Math.cos(angleRad);
-            const topPercent = 50 + radiusPercent * Math.sin(angleRad);
-
+            const pos = playerPositions[idx] || { left: '50%', top: '50%' };
             const isSpinningSelected = roomData.isSpinning && displayIndex === idx;
             const isResultWinner = !roomData.isSpinning && (roomData.currentResult?.id === player.id || roomData.currentResult?.claimedBy === player.id);
             const isResultPair = !roomData.isSpinning && (roomData.currentPair?.id === player.id || roomData.currentPair?.claimedBy === player.id);
@@ -1586,11 +1594,11 @@ export default function Room({
                 key={player.id}
                 onClick={() => handlePlayerChipClick(player)}
                 style={{
-                  left: `${leftPercent}%`,
-                  top: `${topPercent}%`,
-                  transform: 'translate(-50%, -50%)',
+                  left: pos.left,
+                  top: pos.top,
+                  transform: 'translate3d(-50%, -50%, 0)',
                 }}
-                className={`absolute z-20 transition-all duration-200 select-none ${
+                className={`absolute z-20 transition-all duration-200 select-none transform-gpu ${
                   (isHost || canCheat) ? 'cursor-pointer active:scale-95' : ''
                 }`}
               >

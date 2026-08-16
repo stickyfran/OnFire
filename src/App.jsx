@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import Room from './components/Room';
 import { ALL_CHALLENGES } from './data/challenges';
+
+// Lazy loading del componente Room para carga instantánea del Landing
+const Room = lazy(() => import('./components/Room'));
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Flame, 
@@ -661,17 +663,30 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        <Room
-          roomId={currentRoom}
-          playerId={playerId}
-          playerName={displayName || rawInputName}
-          isHost={isHost}
-          canCheat={canCheat}
-          onLeave={handleLeaveRoom}
-          appVersion={APP_VERSION}
-          onInstallApp={handleInstallApp}
-          isInstalled={isInstalled}
-        />
+        <Suspense fallback={
+          <div className="min-h-[100dvh] bg-slate-950 flex flex-col items-center justify-center p-4 text-center select-none">
+            <div className="relative flex flex-col items-center gap-3">
+              <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-rose-600 via-pink-600 to-amber-500 flex items-center justify-center shadow-[0_0_30px_rgba(244,63,94,0.6)] animate-bounce">
+                <Flame className="w-9 h-9 text-white fill-white" />
+              </div>
+              <span className="text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-amber-300 tracking-widest uppercase animate-pulse">
+                Cargando Previa... 🔥
+              </span>
+            </div>
+          </div>
+        }>
+          <Room
+            roomId={currentRoom}
+            playerId={playerId}
+            playerName={displayName || rawInputName}
+            isHost={isHost}
+            canCheat={canCheat}
+            onLeave={handleLeaveRoom}
+            appVersion={APP_VERSION}
+            onInstallApp={handleInstallApp}
+            isInstalled={isInstalled}
+          />
+        </Suspense>
       </>
     );
   }
